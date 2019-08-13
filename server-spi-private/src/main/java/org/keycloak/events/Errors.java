@@ -52,6 +52,7 @@ public interface Errors {
     String INVALID_SAML_AUTHN_REQUEST = "invalid_authn_request";
     String INVALID_SAML_LOGOUT_REQUEST = "invalid_logout_request";
     String INVALID_SAML_LOGOUT_RESPONSE = "invalid_logout_response";
+    String INVALID_SAML_ARTIFACT = "invalid_artifact";
     String SAML_TOKEN_NOT_FOUND = "saml_token_not_found";
     String INVALID_SIGNATURE = "invalid_signature";
     String INVALID_REGISTRATION = "invalid_registration";

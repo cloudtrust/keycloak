@@ -45,6 +45,7 @@ public class CreateAuthnRequestStepBuilder extends SamlDocumentStepBuilder<Authn
     private String signingPrivateKeyPem;
     private String signingCertificate;
 
+    private URI protocolBinding;
     private final Document forceLoginRequestDocument;
 
     private Supplier<String> relayState;
@@ -78,6 +79,15 @@ public class CreateAuthnRequestStepBuilder extends SamlDocumentStepBuilder<Authn
     public CreateAuthnRequestStepBuilder relayState(String relayState) {
         this.relayState = () -> relayState;
         return this;
+    }
+
+    public CreateAuthnRequestStepBuilder setProtocolBinding(URI protocolBinding) {
+        this.protocolBinding = protocolBinding;
+        return this;
+    }
+
+    public URI getProtocolBinding() {
+        return protocolBinding;
     }
 
     public CreateAuthnRequestStepBuilder signWith(String signingPrivateKeyPem, String signingPublicKeyPem) {
@@ -116,9 +126,10 @@ public class CreateAuthnRequestStepBuilder extends SamlDocumentStepBuilder<Authn
 
         try {
             SAML2Request samlReq = new SAML2Request();
-            AuthnRequestType loginReq = samlReq.createAuthnRequestType(UUID.randomUUID().toString(),
-                    assertionConsumerURL, this.authServerSamlUrl.toString(), issuer, requestBinding.getBindingUri());
-
+            AuthnRequestType loginReq = samlReq.createAuthnRequestType(UUID.randomUUID().toString(), assertionConsumerURL, this.authServerSamlUrl.toString(), issuer, requestBinding.getBindingUri());
+            if (protocolBinding != null) {
+                loginReq.setProtocolBinding(protocolBinding);
+            }
             return SAML2Request.convert(loginReq);
         } catch (ConfigurationException | ParsingException | ProcessingException ex) {
             throw new RuntimeException(ex);
