@@ -109,7 +109,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         assertThat(artifact[3], is((byte)0));
 
         MessageDigest sha1Digester = MessageDigest.getInstance("SHA-1");
-        byte[] source = sha1Digester.digest("http://localhost:8180/auth/realms/demo".getBytes(Charsets.UTF_8));
+        byte[] source = sha1Digester.digest("https://localhost:8543/auth/realms/demo".getBytes(Charsets.UTF_8));
         for (int i = 0; i < 20; i++) {
             assertThat(source[i], is(artifact[i+4]));
         }
@@ -515,7 +515,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
         assertThat(artifact[3], is((byte)0));
 
         MessageDigest sha1Digester = MessageDigest.getInstance("SHA-1");
-        byte[] source = sha1Digester.digest("http://localhost:8180/auth/realms/demo".getBytes(Charsets.UTF_8));
+        byte[] source = sha1Digester.digest("https://localhost:8543/auth/realms/demo".getBytes(Charsets.UTF_8));
         for (int i = 0; i < 20; i++) {
             assertThat(source[i], is(artifact[i+4]));
         }
