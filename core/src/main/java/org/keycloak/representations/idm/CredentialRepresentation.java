@@ -17,8 +17,6 @@
 
 package org.keycloak.representations.idm;
 
-import org.keycloak.common.util.MultivaluedHashMap;
-
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
  * @version $Revision: 1 $

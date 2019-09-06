@@ -175,7 +175,7 @@ public class ModelToRepresentation {
 
         rep.setNotBefore(session.users().getNotBeforeOfUser(realm, user));
 
-        List<String> reqActions = new ArrayList<String>();
+        List<String> reqActions = new ArrayList<>();
         Set<String> requiredActions = user.getRequiredActions();
         reqActions.addAll(requiredActions);
 
@@ -354,7 +354,7 @@ public class ModelToRepresentation {
 
         List<String> defaultRoles = realm.getDefaultRoles();
         if (!defaultRoles.isEmpty()) {
-            List<String> roleStrings = new ArrayList<String>();
+            List<String> roleStrings = new ArrayList<>();
             roleStrings.addAll(defaultRoles);
             rep.setDefaultRoles(roleStrings);
         }
@@ -368,8 +368,8 @@ public class ModelToRepresentation {
         }
 
         List<RequiredCredentialModel> requiredCredentialModels = realm.getRequiredCredentials();
-        if (requiredCredentialModels.size() > 0) {
-            rep.setRequiredCredentials(new HashSet<String>());
+        if (!requiredCredentialModels.isEmpty()) {
+            rep.setRequiredCredentials(new HashSet<>());
             for (RequiredCredentialModel cred : requiredCredentialModels) {
                 rep.getRequiredCredentials().add(cred.getType());
             }
@@ -416,13 +416,10 @@ public class ModelToRepresentation {
 
         List<AuthenticationFlowModel> authenticationFlows = new ArrayList<>(realm.getAuthenticationFlows());
         //ensure consistent ordering of authenticationFlows.
-        Collections.sort(authenticationFlows, new Comparator<AuthenticationFlowModel>() {
-            @Override
-            public int compare(AuthenticationFlowModel left, AuthenticationFlowModel right) {
-                String l = left.getAlias() != null ? left.getAlias() : "\0";
-                String r = right.getAlias() != null ? right.getAlias() : "\0";
-                return l.compareTo(r);
-            }
+        Collections.sort(authenticationFlows, (left, right) -> {
+            String l = left.getAlias() != null ? left.getAlias() : "\0";
+            String r = right.getAlias() != null ? right.getAlias() : "\0";
+            return l.compareTo(r);
         });
 
         for (AuthenticationFlowModel model : authenticationFlows) {
@@ -432,13 +429,10 @@ public class ModelToRepresentation {
 
         List<AuthenticatorConfigModel> authenticatorConfigs = new ArrayList<>(realm.getAuthenticatorConfigs());
         //ensure consistent ordering of authenticatorConfigs.
-        Collections.sort(authenticatorConfigs, new Comparator<AuthenticatorConfigModel>() {
-            @Override
-            public int compare(AuthenticatorConfigModel left, AuthenticatorConfigModel right) {
-                String l = left.getAlias() != null ? left.getAlias() : "\0";
-                String r = right.getAlias() != null ? right.getAlias() : "\0";
-                return l.compareTo(r);
-            }
+        Collections.sort(authenticatorConfigs, (left, right) -> {
+            String l = left.getAlias() != null ? left.getAlias() : "\0";
+            String r = right.getAlias() != null ? right.getAlias() : "\0";
+            return l.compareTo(r);
         });
 
         for (AuthenticatorConfigModel model : authenticatorConfigs) {
@@ -648,7 +642,7 @@ public class ModelToRepresentation {
         ProtocolMapperRepresentation rep = new ProtocolMapperRepresentation();
         rep.setId(model.getId());
         rep.setProtocol(model.getProtocol());
-        Map<String, String> config = new HashMap<String, String>();
+        Map<String, String> config = new HashMap<>();
         config.putAll(model.getConfig());
         rep.setConfig(config);
         rep.setName(model.getName());
@@ -661,7 +655,7 @@ public class ModelToRepresentation {
         rep.setId(model.getId());
         rep.setIdentityProviderMapper(model.getIdentityProviderMapper());
         rep.setIdentityProviderAlias(model.getIdentityProviderAlias());
-        Map<String, String> config = new HashMap<String, String>();
+        Map<String, String> config = new HashMap<>();
         config.putAll(model.getConfig());
         rep.setConfig(config);
         rep.setName(model.getName());

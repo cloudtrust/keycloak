@@ -176,8 +176,7 @@ public class MSADUserAccountControlStorageMapper extends AbstractLDAPStorageMapp
 
             // 52D corresponds to ERROR_PASSWORD_RESTRICTION. See https://msdn.microsoft.com/en-us/library/windows/desktop/ms681385(v=vs.85).aspx
             if ((errorCode.equals("53")) && errorCode2.endsWith("52D")) {
-                ModelException me = new ModelException("invalidPasswordGenericMessage", e);
-                return me;
+                return new ModelException("invalidPasswordGenericMessage", e);
             }
         }
 

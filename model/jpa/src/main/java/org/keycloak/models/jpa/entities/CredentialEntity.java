@@ -19,20 +19,15 @@ package org.keycloak.models.jpa.entities;
 
 import javax.persistence.Access;
 import javax.persistence.AccessType;
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
-import javax.persistence.OneToMany;
 import javax.persistence.Table;
-import java.util.ArrayList;
-import java.util.Collection;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -150,9 +145,7 @@ public class CredentialEntity {
 
         CredentialEntity that = (CredentialEntity) o;
 
-        if (!id.equals(that.getId())) return false;
-
-        return true;
+        return id.equals(that.getId());
     }
 
     @Override

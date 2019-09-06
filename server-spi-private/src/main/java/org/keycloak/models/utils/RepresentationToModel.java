@@ -128,9 +128,13 @@ import org.keycloak.storage.UserStorageProviderModel;
 import org.keycloak.storage.federated.UserFederatedStorageProvider;
 import org.keycloak.util.JsonSerialization;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+
 public class RepresentationToModel {
 
     private static Logger logger = Logger.getLogger(RepresentationToModel.class);
+    private static TypeReference<List<String>> listStringTypeRef = new TypeReference<List<String>>() {};
+    private static TypeReference<Set<String>> setStringTypeRef = new TypeReference<Set<String>>() {};
     public static final String OIDC = "openid-connect";
 
     public static OTPPolicy toPolicy(RealmRepresentation rep) {
@@ -353,7 +357,7 @@ public class RepresentationToModel {
         }
 
         if (rep.getSmtpServer() != null) {
-            newRealm.setSmtpConfig(new HashMap(rep.getSmtpServer()));
+            newRealm.setSmtpConfig(new HashMap<>(rep.getSmtpServer()));
         }
 
         if (rep.getBrowserSecurityHeaders() != null) {
@@ -386,7 +390,7 @@ public class RepresentationToModel {
 
         if (rep.getUsers() != null) {
             for (UserRepresentation userRep : rep.getUsers()) {
-                UserModel user = createUser(session, newRealm, userRep);
+                createUser(session, newRealm, userRep);
             }
         }
 
@@ -405,7 +409,7 @@ public class RepresentationToModel {
             newRealm.setInternationalizationEnabled(rep.isInternationalizationEnabled());
         }
         if (rep.getSupportedLocales() != null) {
-            newRealm.setSupportedLocales(new HashSet<String>(rep.getSupportedLocales()));
+            newRealm.setSupportedLocales(new HashSet<>(rep.getSupportedLocales()));
         }
         if (rep.getDefaultLocale() != null) {
             newRealm.setDefaultLocale(rep.getDefaultLocale());
@@ -960,7 +964,7 @@ public class RepresentationToModel {
         }
 
         if (rep.getSmtpServer() != null) {
-            Map<String, String> config = new HashMap(rep.getSmtpServer());
+            Map<String, String> config = new HashMap<>(rep.getSmtpServer());
             if (rep.getSmtpServer().containsKey("password") && ComponentRepresentation.SECRET_VALUE.equals(rep.getSmtpServer().get("password"))) {
                 String passwordValue = realm.getSmtpConfig() != null ? realm.getSmtpConfig().get("password") : null;
                 config.put("password", passwordValue);
@@ -1081,7 +1085,7 @@ public class RepresentationToModel {
     // CLIENTS
 
     private static Map<String, ClientModel> createClients(KeycloakSession session, RealmRepresentation rep, RealmModel realm, Map<String, String> mappedFlows) {
-        Map<String, ClientModel> appMap = new HashMap<String, ClientModel>();
+        Map<String, ClientModel> appMap = new HashMap<>();
         for (ClientRepresentation resourceRep : rep.getClients()) {
             ClientModel app = createClient(session, realm, resourceRep, false, mappedFlows);
             appMap.put(app.getClientId(), app);
@@ -1171,9 +1175,7 @@ public class RepresentationToModel {
 
         if (resourceRep.getAuthenticationFlowBindingOverrides() != null) {
             for (Map.Entry<String, String> entry : resourceRep.getAuthenticationFlowBindingOverrides().entrySet()) {
-                if (entry.getValue() == null || entry.getValue().trim().equals("")) {
-                    continue;
-                } else {
+                if (entry.getValue() != null && !entry.getValue().trim().equals("")) {
                     String flowId = entry.getValue();
                     // check if flow id was mapped when the flows were imported
                     if (mappedFlows != null && mappedFlows.containsKey(flowId)) {
@@ -1201,7 +1203,7 @@ public class RepresentationToModel {
         } else {
             // add origins from redirect uris
             if (resourceRep.getRedirectUris() != null) {
-                Set<String> origins = new HashSet<String>();
+                Set<String> origins = new HashSet<>();
                 for (String redirectUri : resourceRep.getRedirectUris()) {
                     logger.debugv("add redirect-uri to origin: {0}", redirectUri);
                     if (redirectUri.startsWith("http")) {
@@ -1210,7 +1212,7 @@ public class RepresentationToModel {
                         origins.add(origin);
                     }
                 }
-                if (origins.size() > 0) {
+                if (!origins.isEmpty()) {
                     client.setWebOrigins(origins);
                 }
             }
@@ -1346,12 +1348,12 @@ public class RepresentationToModel {
 
         List<String> redirectUris = rep.getRedirectUris();
         if (redirectUris != null) {
-            resource.setRedirectUris(new HashSet<String>(redirectUris));
+            resource.setRedirectUris(new HashSet<>(redirectUris));
         }
 
         List<String> webOrigins = rep.getWebOrigins();
         if (webOrigins != null) {
-            resource.setWebOrigins(new HashSet<String>(webOrigins));
+            resource.setWebOrigins(new HashSet<>(webOrigins));
         }
 
         if (rep.getRegisteredNodes() != null) {
@@ -2052,7 +2054,7 @@ public class RepresentationToModel {
             if (applyPolicies != null && !applyPolicies.isEmpty()) {
                 PolicyStore policyStore = storeFactory.getPolicyStore();
                 try {
-                    List<String> policies = (List<String>) JsonSerialization.readValue(applyPolicies, List.class);
+                    List<String> policies = JsonSerialization.readValue(applyPolicies, listStringTypeRef);
                     Set<String> policyIds = new HashSet<>();
 
                     for (String policyName : policies) {
@@ -2105,47 +2107,23 @@ public class RepresentationToModel {
         model.setDecisionStrategy(representation.getDecisionStrategy());
         model.setLogic(representation.getLogic());
 
-        Set resources = representation.getResources();
-        Set scopes = representation.getScopes();
-        Set policies = representation.getPolicies();
+        Set<String> resources = representation.getResources();
+        Set<String> scopes = representation.getScopes();
+        Set<String> policies = representation.getPolicies();
 
         if (representation instanceof PolicyRepresentation) {
             PolicyRepresentation policy = PolicyRepresentation.class.cast(representation);
 
             if (resources == null) {
-                String resourcesConfig = policy.getConfig().get("resources");
-
-                if (resourcesConfig != null) {
-                    try {
-                        resources = JsonSerialization.readValue(resourcesConfig, Set.class);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
+                resources = policyConfigToModel(policy, "resources");
             }
 
             if (scopes == null) {
-                String scopesConfig = policy.getConfig().get("scopes");
-
-                if (scopesConfig != null) {
-                    try {
-                        scopes = JsonSerialization.readValue(scopesConfig, Set.class);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
+                scopes = policyConfigToModel(policy, "scopes");
             }
 
             if (policies == null) {
-                String policiesConfig = policy.getConfig().get("applyPolicies");
-
-                if (policiesConfig != null) {
-                    try {
-                        policies = JsonSerialization.readValue(policiesConfig, Set.class);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
+                policies = policyConfigToModel(policy, "applyPolicies");
             }
 
             model.setConfig(policy.getConfig());
@@ -2171,6 +2149,19 @@ public class RepresentationToModel {
         representation.setId(model.getId());
 
         return model;
+    }
+
+    private static Set<String> policyConfigToModel(PolicyRepresentation policy, String key) {
+        String config = policy.getConfig().get(key);
+
+        if (config != null) {
+            try {
+                return JsonSerialization.readValue(config, setStringTypeRef);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return null;
     }
 
     private static void updateScopes(Set<String> scopeIds, Policy policy, StoreFactory storeFactory) {
@@ -2384,8 +2375,8 @@ public class RepresentationToModel {
                     }
                 }
 
-                for (String name : attributes.keySet()) {
-                    existing.setAttribute(name, attributes.get(name));
+                for (Entry<String, List<String>> entry : attributes.entrySet()) {
+                    existing.setAttribute(entry.getKey(), entry.getValue());
                 }
             }
 

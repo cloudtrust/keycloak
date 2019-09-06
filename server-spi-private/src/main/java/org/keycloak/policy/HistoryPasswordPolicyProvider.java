@@ -17,7 +17,6 @@
 
 package org.keycloak.policy;
 
-import org.jboss.logging.Logger;
 import org.keycloak.credential.CredentialModel;
 import org.keycloak.credential.hash.PasswordHashProvider;
 import org.keycloak.models.KeycloakSession;
@@ -26,7 +25,6 @@ import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.credential.PasswordCredentialModel;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -34,7 +32,6 @@ import java.util.List;
  */
 public class HistoryPasswordPolicyProvider implements PasswordPolicyProvider {
 
-    private static final Logger logger = Logger.getLogger(HistoryPasswordPolicyProvider.class);
     private static final String ERROR_MESSAGE = "invalidPasswordHistoryMessage";
 
     private KeycloakSession session;

@@ -957,7 +957,7 @@ public class RealmAdapter implements CachedRealmModel {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || !(o instanceof RealmModel)) return false;
+        if (!(o instanceof RealmModel)) return false;
 
         RealmModel that = (RealmModel) o;
         return that.getId().equals(getId());
@@ -1356,8 +1356,8 @@ public class RealmAdapter implements CachedRealmModel {
     public List<ClientScopeModel> getClientScopes() {
         if (isUpdated()) return updated.getClientScopes();
         List<String> clientScopes = cached.getClientScopes();
-        if (clientScopes.isEmpty()) return Collections.EMPTY_LIST;
-        List<ClientScopeModel> apps = new LinkedList<ClientScopeModel>();
+        if (clientScopes.isEmpty()) return Collections.emptyList();
+        List<ClientScopeModel> apps = new LinkedList<>();
         for (String id : clientScopes) {
             ClientScopeModel model = cacheSession.getClientScopeById(id, this);
             if (model == null) {
@@ -1489,7 +1489,7 @@ public class RealmAdapter implements CachedRealmModel {
     public List<ComponentModel> getComponents(String parentId, String providerType) {
         if (isUpdated()) return updated.getComponents(parentId, providerType);
         List<ComponentModel> components = cached.getComponentsByParentAndType().getList(parentId + providerType);
-        if (components == null) return Collections.EMPTY_LIST;
+        if (components == null) return Collections.emptyList();
         return Collections.unmodifiableList(components);
     }
 
@@ -1497,7 +1497,7 @@ public class RealmAdapter implements CachedRealmModel {
     public List<ComponentModel> getComponents(String parentId) {
         if (isUpdated()) return updated.getComponents(parentId);
         List<ComponentModel> components = cached.getComponentsByParent().getList(parentId);
-        if (components == null) return Collections.EMPTY_LIST;
+        if (components == null) return Collections.emptyList();
         return Collections.unmodifiableList(components);
     }
 

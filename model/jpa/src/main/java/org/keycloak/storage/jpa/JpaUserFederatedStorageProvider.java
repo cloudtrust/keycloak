@@ -208,7 +208,7 @@ public class JpaUserFederatedStorageProvider implements
                 .setParameter("realmId", realm.getId())
                 .setParameter("identityProvider", socialProvider);
         List<BrokerLinkEntity> results = query.getResultList();
-        return results.size() > 0 ? results.get(0) : null;
+        return !results.isEmpty() ? results.get(0) : null;
     }
 
     @Override
@@ -288,7 +288,7 @@ public class JpaUserFederatedStorageProvider implements
         query.setParameter("userId", userId);
         List<FederatedUserConsentEntity> results = query.getResultList();
 
-        List<UserConsentModel> consents = new ArrayList<UserConsentModel>();
+        List<UserConsentModel> consents = new ArrayList<>();
         for (FederatedUserConsentEntity entity : results) {
             UserConsentModel model = toConsentModel(realm, entity);
             consents.add(model);
@@ -424,7 +424,7 @@ public class JpaUserFederatedStorageProvider implements
         TypedQuery<FederatedUserGroupMembershipEntity> query = em.createNamedQuery("feduserGroupMembership", FederatedUserGroupMembershipEntity.class);
         query.setParameter("userId", userId);
         List<FederatedUserGroupMembershipEntity> results = query.getResultList();
-        if (results.size() == 0) return set;
+        if (results.isEmpty()) return set;
         for (FederatedUserGroupMembershipEntity entity : results) {
             GroupModel group = realm.getGroupById(entity.getGroupId());
             set.add(group);
@@ -454,7 +454,7 @@ public class JpaUserFederatedStorageProvider implements
         query1.setParameter("groupId", group.getId());
         TypedQuery<FederatedUserGroupMembershipEntity> query = query1;
         List<FederatedUserGroupMembershipEntity> results = query.getResultList();
-        if (results.size() == 0) return;
+        if (results.isEmpty()) return;
         for (FederatedUserGroupMembershipEntity entity : results) {
             em.remove(entity);
         }
@@ -533,7 +533,7 @@ public class JpaUserFederatedStorageProvider implements
         TypedQuery<FederatedUserRoleMappingEntity> query = em.createNamedQuery("feduserRoleMappings", FederatedUserRoleMappingEntity.class);
         query.setParameter("userId", userId);
         List<FederatedUserRoleMappingEntity> results = query.getResultList();
-        if (results.size() == 0) return set;
+        if (results.isEmpty()) return set;
         for (FederatedUserRoleMappingEntity entity : results) {
             RoleModel role = realm.getRoleById(entity.getRoleId());
             set.add(role);
@@ -596,8 +596,7 @@ public class JpaUserFederatedStorageProvider implements
     public CredentialModel getStoredCredentialById(RealmModel realm, String userId, String id) {
         FederatedUserCredentialEntity entity = em.find(FederatedUserCredentialEntity.class, id);
         if (entity == null) return null;
-        CredentialModel model = toModel(entity);
-        return model;
+        return toModel(entity);
     }
 
     protected CredentialModel toModel(FederatedUserCredentialEntity entity) {

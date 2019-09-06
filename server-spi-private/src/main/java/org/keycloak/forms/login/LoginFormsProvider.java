@@ -19,8 +19,6 @@ package org.keycloak.forms.login;
 
 import org.keycloak.authentication.AuthenticationFlowContext;
 import org.keycloak.models.ClientScopeModel;
-import org.keycloak.models.ProtocolMapperModel;
-import org.keycloak.models.RoleModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.utils.FormMessage;
 import org.keycloak.provider.Provider;

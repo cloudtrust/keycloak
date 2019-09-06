@@ -74,8 +74,7 @@ public class JpaUserCredentialStore implements UserCredentialStore {
     public CredentialModel getStoredCredentialById(RealmModel realm, UserModel user, String id) {
         CredentialEntity entity = em.find(CredentialEntity.class, id);
         if (entity == null) return null;
-        CredentialModel model = toModel(entity);
-        return model;
+        return toModel(entity);
     }
 
     CredentialModel toModel(CredentialEntity entity) {

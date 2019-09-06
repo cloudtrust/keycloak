@@ -18,7 +18,6 @@
 package org.keycloak.models.jpa;
 
 import org.keycloak.authorization.jpa.entities.ResourceEntity;
-import org.keycloak.common.util.MultivaluedHashMap;
 import org.keycloak.common.util.Time;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.credential.CredentialModel;
@@ -45,7 +44,6 @@ import org.keycloak.models.jpa.entities.UserEntity;
 import org.keycloak.models.jpa.entities.UserGroupMembershipEntity;
 import org.keycloak.models.utils.DefaultRoles;
 import org.keycloak.models.utils.KeycloakModelUtils;
-import org.keycloak.models.utils.ModelToRepresentation;
 import org.keycloak.storage.StorageId;
 import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.storage.client.ClientStorageProvider;
@@ -60,7 +58,6 @@ import javax.persistence.criteria.Subquery;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -74,12 +71,6 @@ import javax.persistence.criteria.Expression;
  */
 @SuppressWarnings("JpaQueryApiInspection")
 public class JpaUserProvider implements UserProvider, UserCredentialStore {
-
-    private static final String EMAIL = "email";
-    private static final String USERNAME = "username";
-    private static final String FIRST_NAME = "firstName";
-    private static final String LAST_NAME = "lastName";
-
     private final KeycloakSession session;
     protected EntityManager em;
     private final JpaUserCredentialStore credentialStore;
@@ -234,7 +225,7 @@ public class JpaUserProvider implements UserProvider, UserCredentialStore {
         query.setParameter("userId", userId);
         List<UserConsentEntity> results = query.getResultList();
 
-        List<UserConsentModel> consents = new ArrayList<UserConsentModel>();
+        List<UserConsentModel> consents = new ArrayList<>();
         for (UserConsentEntity entity : results) {
             UserConsentModel model = toConsentModel(realm, entity);
             consents.add(model);
@@ -486,7 +477,7 @@ public class JpaUserProvider implements UserProvider, UserCredentialStore {
         query.setParameter("groupId", group.getId());
         List<UserEntity> results = query.getResultList();
 
-        List<UserModel> users = new ArrayList<UserModel>();
+        List<UserModel> users = new ArrayList<>();
         for (UserEntity user : results) {
             users.add(new UserAdapter(session, realm, em, user));
         }
@@ -499,7 +490,7 @@ public class JpaUserProvider implements UserProvider, UserCredentialStore {
         query.setParameter("roleId", role.getId());
         List<UserEntity> results = query.getResultList();
 
-        List<UserModel> users = new ArrayList<UserModel>();
+        List<UserModel> users = new ArrayList<>();
         for (UserEntity user : results) {
             users.add(new UserAdapter(session, realm, em, user));
         }
@@ -526,7 +517,7 @@ public class JpaUserProvider implements UserProvider, UserCredentialStore {
         query.setParameter("username", username.toLowerCase());
         query.setParameter("realmId", realm.getId());
         List<UserEntity> results = query.getResultList();
-        if (results.size() == 0) return null;
+        if (results.isEmpty()) return null;
         return new UserAdapter(session, realm, em, results.get(0));
     }
 
@@ -706,7 +697,7 @@ public class JpaUserProvider implements UserProvider, UserCredentialStore {
         CriteriaQuery<UserEntity> queryBuilder = builder.createQuery(UserEntity.class);
         Root<UserEntity> root = queryBuilder.from(UserEntity.class);
 
-        List<Predicate> predicates = new ArrayList();
+        List<Predicate> predicates = new ArrayList<>();
 
         predicates.add(builder.equal(root.get("realmId"), realm.getId()));
 
@@ -806,7 +797,7 @@ public class JpaUserProvider implements UserProvider, UserCredentialStore {
         query.setParameter("user", userEntity);
         query.setParameter("identityProvider", identityProvider);
         List<FederatedIdentityEntity> results = query.getResultList();
-        return results.size() > 0 ? results.get(0) : null;
+        return !results.isEmpty() ? results.get(0) : null;
     }
 
 
@@ -816,7 +807,7 @@ public class JpaUserProvider implements UserProvider, UserCredentialStore {
         UserEntity userEntity = em.getReference(UserEntity.class, user.getId());
         query.setParameter("user", userEntity);
         List<FederatedIdentityEntity> results = query.getResultList();
-        Set<FederatedIdentityModel> set = new HashSet<FederatedIdentityModel>();
+        Set<FederatedIdentityModel> set = new HashSet<>();
         for (FederatedIdentityEntity entity : results) {
             set.add(new FederatedIdentityModel(entity.getIdentityProvider(), entity.getUserId(), entity.getUserName(), entity.getToken()));
         }

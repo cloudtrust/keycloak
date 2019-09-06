@@ -189,10 +189,7 @@ public final class KeycloakModelUtils {
 
         Set<RoleModel> compositeRoles = composite.getComposites();
         return compositeRoles.contains(role) ||
-                        compositeRoles.stream()
-                                .filter(x -> x.isComposite() && searchFor(role, x, visited))
-                                .findFirst()
-                                .isPresent();
+                        compositeRoles.stream().anyMatch(x -> x.isComposite() && searchFor(role, x, visited));
     }
 
     /**
@@ -254,32 +251,27 @@ public final class KeycloakModelUtils {
     public static void runJobInTransactionWithTimeout(KeycloakSessionFactory factory, KeycloakSessionTask task, int timeoutInSeconds) {
         JtaTransactionManagerLookup lookup = (JtaTransactionManagerLookup)factory.getProviderFactory(JtaTransactionManagerLookup.class);
         try {
-            if (lookup != null) {
-                if (lookup.getTransactionManager() != null) {
-                    try {
-                        lookup.getTransactionManager().setTransactionTimeout(timeoutInSeconds);
-                    } catch (SystemException e) {
-                        throw new RuntimeException(e);
-                    }
+            if (lookup != null && lookup.getTransactionManager() != null) {
+                try {
+                    lookup.getTransactionManager().setTransactionTimeout(timeoutInSeconds);
+                } catch (SystemException e) {
+                    throw new RuntimeException(e);
                 }
             }
 
             runJobInTransaction(factory, task);
 
         } finally {
-            if (lookup != null) {
-                if (lookup.getTransactionManager() != null) {
-                    try {
-                        // Reset to default transaction timeout
-                        lookup.getTransactionManager().setTransactionTimeout(0);
-                    } catch (SystemException e) {
-                        // Shouldn't happen for Wildfly transaction manager
-                        throw new RuntimeException(e);
-                    }
+            if (lookup != null && lookup.getTransactionManager() != null) {
+                try {
+                    // Reset to default transaction timeout
+                    lookup.getTransactionManager().setTransactionTimeout(0);
+                } catch (SystemException e) {
+                    // Shouldn't happen for Wildfly transaction manager
+                    throw new RuntimeException(e);
                 }
             }
         }
-
     }
 
 
@@ -411,7 +403,7 @@ public final class KeycloakModelUtils {
 
     public static Collection<String> resolveAttribute(UserModel user, String name, boolean aggregateAttrs) {
         List<String> values = user.getAttribute(name);
-        Set<String> aggrValues = new HashSet<String>();
+        Set<String> aggrValues = new HashSet<>();
         if (!values.isEmpty()) {
             if (!aggregateAttrs) {
                 return values;
@@ -531,11 +523,8 @@ public final class KeycloakModelUtils {
         Set<RoleModel> result = new HashSet<>();
         for (RoleModel role : mappings) {
             RoleContainerModel roleContainer = role.getContainer();
-            if (roleContainer instanceof ClientModel) {
-                if (client.getId().equals(((ClientModel)roleContainer).getId())) {
-                    result.add(role);
-                }
-
+            if (roleContainer instanceof ClientModel && client.getId().equals(((ClientModel)roleContainer).getId())) {
+                result.add(role);
             }
         }
         return result;
@@ -562,11 +551,9 @@ public final class KeycloakModelUtils {
         if (scopeIndex > -1) {
             String appName = role.substring(0, scopeIndex);
             role = role.substring(scopeIndex + 1);
-            String[] rtn = {appName, role};
-            return rtn;
+            return new String[] {appName, role};
         } else {
-            String[] rtn = {null, role};
-            return rtn;
+            return new String[] {null, role};
 
         }
     }
@@ -666,13 +653,11 @@ public final class KeycloakModelUtils {
         JtaTransactionManagerLookup lookup = (JtaTransactionManagerLookup)factory.getProviderFactory(JtaTransactionManagerLookup.class);
         Transaction suspended = null;
         try {
-            if (lookup != null) {
-                if (lookup.getTransactionManager() != null) {
-                    try {
-                        suspended = lookup.getTransactionManager().suspend();
-                    } catch (SystemException e) {
-                        throw new RuntimeException(e);
-                    }
+            if (lookup != null && lookup.getTransactionManager() != null) {
+                try {
+                    suspended = lookup.getTransactionManager().suspend();
+                } catch (SystemException e) {
+                    throw new RuntimeException(e);
                 }
             }
             runnable.run();

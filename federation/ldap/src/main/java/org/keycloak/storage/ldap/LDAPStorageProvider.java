@@ -35,7 +35,6 @@ import org.keycloak.credential.CredentialAuthentication;
 import org.keycloak.credential.CredentialInput;
 import org.keycloak.credential.CredentialInputUpdater;
 import org.keycloak.credential.CredentialInputValidator;
-import org.keycloak.credential.CredentialModel;
 import org.keycloak.federation.kerberos.impl.KerberosUsernamePasswordAuthenticator;
 import org.keycloak.federation.kerberos.impl.SPNEGOAuthenticator;
 import org.keycloak.models.*;
@@ -221,30 +220,30 @@ public class LDAPStorageProvider implements UserStorageProvider,
 
     @Override
     public List<UserModel> searchForUserByUserAttribute(String attrName, String attrValue, RealmModel realm) {
-    	 LDAPQuery ldapQuery = LDAPUtils.createQueryForUserSearch(this, realm);
-         LDAPQueryConditionsBuilder conditionsBuilder = new LDAPQueryConditionsBuilder();
+        try (LDAPQuery ldapQuery = LDAPUtils.createQueryForUserSearch(this, realm)) {
+            LDAPQueryConditionsBuilder conditionsBuilder = new LDAPQueryConditionsBuilder();
 
-         Condition attrCondition = conditionsBuilder.equal(attrName, attrValue, EscapeStrategy.DEFAULT);
-         ldapQuery.addWhereCondition(attrCondition);
+            Condition attrCondition = conditionsBuilder.equal(attrName, attrValue, EscapeStrategy.DEFAULT);
+            ldapQuery.addWhereCondition(attrCondition);
 
-         List<LDAPObject> ldapObjects = ldapQuery.getResultList();
-         
-         if (ldapObjects == null || ldapObjects.isEmpty()) {
-        	 return Collections.emptyList();
-         }
-         
-         List<UserModel> searchResults =new LinkedList<UserModel>();
-         
-         for (LDAPObject ldapUser : ldapObjects) {
-             String ldapUsername = LDAPUtils.getUsername(ldapUser, this.ldapIdentityStore.getConfig());
-             if (session.userLocalStorage().getUserByUsername(ldapUsername, realm) == null) {
-                 UserModel imported = importUserFromLDAP(session, realm, ldapUser);
-                 searchResults.add(imported);
-             }
-         }
+            List<LDAPObject> ldapObjects = ldapQuery.getResultList();
 
-         return searchResults;
-         
+            if (ldapObjects == null || ldapObjects.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            List<UserModel> searchResults =new LinkedList<>();
+
+            for (LDAPObject ldapUser : ldapObjects) {
+                String ldapUsername = LDAPUtils.getUsername(ldapUser, this.ldapIdentityStore.getConfig());
+                if (session.userLocalStorage().getUserByUsername(ldapUsername, realm) == null) {
+                    UserModel imported = importUserFromLDAP(session, realm, ldapUser);
+                    searchResults.add(imported);
+                }
+            }
+
+            return searchResults;
+        }
     }
 
     public boolean synchronizeRegistrations() {
@@ -320,12 +319,12 @@ public class LDAPStorageProvider implements UserStorageProvider,
 
     @Override
     public List<UserModel> getUsers(RealmModel realm) {
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
     }
 
     @Override
     public List<UserModel> getUsers(RealmModel realm, int firstResult, int maxResults) {
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
     }
 
     @Override
@@ -335,7 +334,7 @@ public class LDAPStorageProvider implements UserStorageProvider,
 
     @Override
     public List<UserModel> searchForUser(String search, RealmModel realm, int firstResult, int maxResults) {
-        Map<String, String> attributes = new HashMap<String, String>();
+        Map<String, String> attributes = new HashMap<>();
         int spaceIndex = search.lastIndexOf(' ');
         if (spaceIndex > -1) {
             String firstName = search.substring(0, spaceIndex).trim();
@@ -359,7 +358,7 @@ public class LDAPStorageProvider implements UserStorageProvider,
 
     @Override
     public List<UserModel> searchForUser(Map<String, String> params, RealmModel realm, int firstResult, int maxResults) {
-        List<UserModel> searchResults =new LinkedList<UserModel>();
+        List<UserModel> searchResults = new LinkedList<>();
 
         List<LDAPObject> ldapUsers = searchLDAP(realm, params, maxResults + firstResult);
         int counter = 0;
@@ -389,7 +388,7 @@ public class LDAPStorageProvider implements UserStorageProvider,
             List<UserModel> users = ldapMapper.getGroupMembers(realm, group, firstResult, maxResults);
 
             // Sufficient for now
-            if (users.size() > 0) {
+            if (!users.isEmpty()) {
                 return users;
             }
         }
@@ -413,45 +412,48 @@ public class LDAPStorageProvider implements UserStorageProvider,
 
     protected List<LDAPObject> searchLDAP(RealmModel realm, Map<String, String> attributes, int maxResults) {
 
-        List<LDAPObject> results = new ArrayList<LDAPObject>();
+        List<LDAPObject> results = new ArrayList<>();
         if (attributes.containsKey(UserModel.USERNAME)) {
-            LDAPQuery ldapQuery = LDAPUtils.createQueryForUserSearch(this, realm);
-            LDAPQueryConditionsBuilder conditionsBuilder = new LDAPQueryConditionsBuilder();
+            try (LDAPQuery ldapQuery = LDAPUtils.createQueryForUserSearch(this, realm)) {
+                LDAPQueryConditionsBuilder conditionsBuilder = new LDAPQueryConditionsBuilder();
 
-            // Mapper should replace "username" in parameter name with correct LDAP mapped attribute
-            Condition usernameCondition = conditionsBuilder.equal(UserModel.USERNAME, attributes.get(UserModel.USERNAME), EscapeStrategy.NON_ASCII_CHARS_ONLY);
-            ldapQuery.addWhereCondition(usernameCondition);
+                // Mapper should replace "username" in parameter name with correct LDAP mapped attribute
+                Condition usernameCondition = conditionsBuilder.equal(UserModel.USERNAME, attributes.get(UserModel.USERNAME), EscapeStrategy.NON_ASCII_CHARS_ONLY);
+                ldapQuery.addWhereCondition(usernameCondition);
 
-            List<LDAPObject> ldapObjects = ldapQuery.getResultList();
-            results.addAll(ldapObjects);
+                List<LDAPObject> ldapObjects = ldapQuery.getResultList();
+                results.addAll(ldapObjects);
+            }
         }
 
         if (attributes.containsKey(UserModel.EMAIL)) {
-            LDAPQuery ldapQuery = LDAPUtils.createQueryForUserSearch(this, realm);
-            LDAPQueryConditionsBuilder conditionsBuilder = new LDAPQueryConditionsBuilder();
+            try (LDAPQuery ldapQuery = LDAPUtils.createQueryForUserSearch(this, realm)) {
+                LDAPQueryConditionsBuilder conditionsBuilder = new LDAPQueryConditionsBuilder();
 
-            // Mapper should replace "email" in parameter name with correct LDAP mapped attribute
-            Condition emailCondition = conditionsBuilder.equal(UserModel.EMAIL, attributes.get(UserModel.EMAIL), EscapeStrategy.NON_ASCII_CHARS_ONLY);
-            ldapQuery.addWhereCondition(emailCondition);
+                // Mapper should replace "email" in parameter name with correct LDAP mapped attribute
+                Condition emailCondition = conditionsBuilder.equal(UserModel.EMAIL, attributes.get(UserModel.EMAIL), EscapeStrategy.NON_ASCII_CHARS_ONLY);
+                ldapQuery.addWhereCondition(emailCondition);
 
-            List<LDAPObject> ldapObjects = ldapQuery.getResultList();
-            results.addAll(ldapObjects);
+                List<LDAPObject> ldapObjects = ldapQuery.getResultList();
+                results.addAll(ldapObjects);
+            }
         }
 
         if (attributes.containsKey(UserModel.FIRST_NAME) || attributes.containsKey(UserModel.LAST_NAME)) {
-            LDAPQuery ldapQuery = LDAPUtils.createQueryForUserSearch(this, realm);
-            LDAPQueryConditionsBuilder conditionsBuilder = new LDAPQueryConditionsBuilder();
+            try (LDAPQuery ldapQuery = LDAPUtils.createQueryForUserSearch(this, realm)) {
+                LDAPQueryConditionsBuilder conditionsBuilder = new LDAPQueryConditionsBuilder();
 
-            // Mapper should replace parameter with correct LDAP mapped attributes
-            if (attributes.containsKey(UserModel.FIRST_NAME)) {
-                ldapQuery.addWhereCondition(conditionsBuilder.equal(UserModel.FIRST_NAME, attributes.get(UserModel.FIRST_NAME), EscapeStrategy.NON_ASCII_CHARS_ONLY));
-            }
-            if (attributes.containsKey(UserModel.LAST_NAME)) {
-                ldapQuery.addWhereCondition(conditionsBuilder.equal(UserModel.LAST_NAME, attributes.get(UserModel.LAST_NAME), EscapeStrategy.NON_ASCII_CHARS_ONLY));
-            }
+                // Mapper should replace parameter with correct LDAP mapped attributes
+                if (attributes.containsKey(UserModel.FIRST_NAME)) {
+                    ldapQuery.addWhereCondition(conditionsBuilder.equal(UserModel.FIRST_NAME, attributes.get(UserModel.FIRST_NAME), EscapeStrategy.NON_ASCII_CHARS_ONLY));
+                }
+                if (attributes.containsKey(UserModel.LAST_NAME)) {
+                    ldapQuery.addWhereCondition(conditionsBuilder.equal(UserModel.LAST_NAME, attributes.get(UserModel.LAST_NAME), EscapeStrategy.NON_ASCII_CHARS_ONLY));
+                }
 
-            List<LDAPObject> ldapObjects = ldapQuery.getResultList();
-            results.addAll(ldapObjects);
+                List<LDAPObject> ldapObjects = ldapQuery.getResultList();
+                results.addAll(ldapObjects);
+            }
         }
 
         return results;
@@ -523,19 +525,19 @@ public class LDAPStorageProvider implements UserStorageProvider,
 
         logger.debugf("Imported new user from LDAP to Keycloak DB. Username: [%s], Email: [%s], LDAP_ID: [%s], LDAP Entry DN: [%s]", imported.getUsername(), imported.getEmail(),
                 ldapUser.getUuid(), userDN);
-        UserModel proxy = proxy(realm, imported, ldapUser);
-        return proxy;
+        return proxy(realm, imported, ldapUser);
     }
 
     protected LDAPObject queryByEmail(RealmModel realm, String email) {
-        LDAPQuery ldapQuery = LDAPUtils.createQueryForUserSearch(this, realm);
-        LDAPQueryConditionsBuilder conditionsBuilder = new LDAPQueryConditionsBuilder();
+        try (LDAPQuery ldapQuery = LDAPUtils.createQueryForUserSearch(this, realm)) {
+            LDAPQueryConditionsBuilder conditionsBuilder = new LDAPQueryConditionsBuilder();
 
-        // Mapper should replace "email" in parameter name with correct LDAP mapped attribute
-        Condition emailCondition = conditionsBuilder.equal(UserModel.EMAIL, email, EscapeStrategy.DEFAULT);
-        ldapQuery.addWhereCondition(emailCondition);
+            // Mapper should replace "email" in parameter name with correct LDAP mapped attribute
+            Condition emailCondition = conditionsBuilder.equal(UserModel.EMAIL, email, EscapeStrategy.DEFAULT);
+            ldapQuery.addWhereCondition(emailCondition);
 
-        return ldapQuery.getFirstResult();
+            return ldapQuery.getFirstResult();
+        }
     }
 
 
@@ -609,14 +611,13 @@ public class LDAPStorageProvider implements UserStorageProvider,
         if (!PasswordCredentialModel.TYPE.equals(input.getType()) || ! (input instanceof UserCredentialModel)) return false;
         if (editMode == UserStorageProvider.EditMode.READ_ONLY) {
             throw new ReadOnlyException("Federated storage is not writable");
-
         } else if (editMode == UserStorageProvider.EditMode.WRITABLE) {
             LDAPIdentityStore ldapIdentityStore = getLdapIdentityStore();
             String password = input.getChallengeResponse();
             LDAPObject ldapUser = loadAndValidateUser(realm, user);
             if (ldapIdentityStore.getConfig().isValidatePasswordPolicy()) {
-		PolicyError error = session.getProvider(PasswordPolicyManagerProvider.class).validate(realm, user, password);
-		if (error != null) throw new ModelException(error.getMessage(), error.getParameters());
+                PolicyError error = session.getProvider(PasswordPolicyManagerProvider.class).validate(realm, user, password);
+                if (error != null) throw new ModelException(error.getMessage(), error.getParameters());
             }
             try {
                 LDAPOperationDecorator operationDecorator = null;
@@ -649,11 +650,11 @@ public class LDAPStorageProvider implements UserStorageProvider,
 
     @Override
     public Set<String> getDisableableCredentialTypes(RealmModel realm, UserModel user) {
-        return Collections.EMPTY_SET;
+        return Collections.emptySet();
     }
 
     public Set<String> getSupportedCredentialTypes() {
-        return new HashSet<String>(this.supportedCredentialTypes);
+        return new HashSet<>(this.supportedCredentialTypes);
     }
 
 
@@ -681,36 +682,34 @@ public class LDAPStorageProvider implements UserStorageProvider,
     public CredentialValidationOutput authenticate(RealmModel realm, CredentialInput cred) {
         if (!(cred instanceof UserCredentialModel)) CredentialValidationOutput.failed();
         UserCredentialModel credential = (UserCredentialModel)cred;
-        if (credential.getType().equals(UserCredentialModel.KERBEROS)) {
-            if (kerberosConfig.isAllowKerberosAuthentication()) {
-                String spnegoToken = credential.getChallengeResponse();
-                SPNEGOAuthenticator spnegoAuthenticator = factory.createSPNEGOAuthenticator(spnegoToken, kerberosConfig);
+        if (credential.getType().equals(UserCredentialModel.KERBEROS) && kerberosConfig.isAllowKerberosAuthentication()) {
+            String spnegoToken = credential.getChallengeResponse();
+            SPNEGOAuthenticator spnegoAuthenticator = factory.createSPNEGOAuthenticator(spnegoToken, kerberosConfig);
 
-                spnegoAuthenticator.authenticate();
+            spnegoAuthenticator.authenticate();
 
-                Map<String, String> state = new HashMap<String, String>();
-                if (spnegoAuthenticator.isAuthenticated()) {
+            Map<String, String> state = new HashMap<>();
+            if (spnegoAuthenticator.isAuthenticated()) {
 
-                    // TODO: This assumes that LDAP "uid" is equal to kerberos principal name. Like uid "hnelson" and kerberos principal "hnelson@KEYCLOAK.ORG".
-                    // Check if it's correct or if LDAP attribute for mapping kerberos principal should be available (For ApacheDS it seems to be attribute "krb5PrincipalName" but on MSAD it's likely different)
-                    String username = spnegoAuthenticator.getAuthenticatedUsername();
-                    UserModel user = findOrCreateAuthenticatedUser(realm, username);
+                // TODO: This assumes that LDAP "uid" is equal to kerberos principal name. Like uid "hnelson" and kerberos principal "hnelson@KEYCLOAK.ORG".
+                // Check if it's correct or if LDAP attribute for mapping kerberos principal should be available (For ApacheDS it seems to be attribute "krb5PrincipalName" but on MSAD it's likely different)
+                String username = spnegoAuthenticator.getAuthenticatedUsername();
+                UserModel user = findOrCreateAuthenticatedUser(realm, username);
 
-                    if (user == null) {
-                        logger.warnf("Kerberos/SPNEGO authentication succeeded with username [%s], but couldn't find or create user with federation provider [%s]", username, model.getName());
-                        return CredentialValidationOutput.failed();
-                    } else {
-                        String delegationCredential = spnegoAuthenticator.getSerializedDelegationCredential();
-                        if (delegationCredential != null) {
-                            state.put(KerberosConstants.GSS_DELEGATION_CREDENTIAL, delegationCredential);
-                        }
-
-                        return new CredentialValidationOutput(user, CredentialValidationOutput.Status.AUTHENTICATED, state);
+                if (user == null) {
+                    logger.warnf("Kerberos/SPNEGO authentication succeeded with username [%s], but couldn't find or create user with federation provider [%s]", username, model.getName());
+                    return CredentialValidationOutput.failed();
+                } else {
+                    String delegationCredential = spnegoAuthenticator.getSerializedDelegationCredential();
+                    if (delegationCredential != null) {
+                        state.put(KerberosConstants.GSS_DELEGATION_CREDENTIAL, delegationCredential);
                     }
-                }  else {
-                    state.put(KerberosConstants.RESPONSE_TOKEN, spnegoAuthenticator.getResponseToken());
-                    return new CredentialValidationOutput(null, CredentialValidationOutput.Status.CONTINUE, state);
+
+                    return new CredentialValidationOutput(user, CredentialValidationOutput.Status.AUTHENTICATED, state);
                 }
+            }  else {
+                state.put(KerberosConstants.RESPONSE_TOKEN, spnegoAuthenticator.getResponseToken());
+                return new CredentialValidationOutput(null, CredentialValidationOutput.Status.CONTINUE, state);
             }
         }
 
@@ -758,19 +757,15 @@ public class LDAPStorageProvider implements UserStorageProvider,
     }
 
     public LDAPObject loadLDAPUserByUsername(RealmModel realm, String username) {
-        LDAPQuery ldapQuery = LDAPUtils.createQueryForUserSearch(this, realm);
-        LDAPQueryConditionsBuilder conditionsBuilder = new LDAPQueryConditionsBuilder();
+        try (LDAPQuery ldapQuery = LDAPUtils.createQueryForUserSearch(this, realm)) {
+            LDAPQueryConditionsBuilder conditionsBuilder = new LDAPQueryConditionsBuilder();
 
-        String usernameMappedAttribute = this.ldapIdentityStore.getConfig().getUsernameLdapAttribute();
-        Condition usernameCondition = conditionsBuilder.equal(usernameMappedAttribute, username, EscapeStrategy.DEFAULT);
-        ldapQuery.addWhereCondition(usernameCondition);
+            String usernameMappedAttribute = this.ldapIdentityStore.getConfig().getUsernameLdapAttribute();
+            Condition usernameCondition = conditionsBuilder.equal(usernameMappedAttribute, username, EscapeStrategy.DEFAULT);
+            ldapQuery.addWhereCondition(usernameCondition);
 
-        LDAPObject ldapUser = ldapQuery.getFirstResult();
-        if (ldapUser == null) {
-            return null;
+            return ldapQuery.getFirstResult();
         }
-
-        return ldapUser;
     }
 
 
