@@ -3,7 +3,7 @@ How To Run various testsuite configurations
 
 ## Base steps
 
-It's recomended to build the workspace including distribution.
+It's recommended to build the workspace including distribution.
 
     
     cd $KEYCLOAK_SOURCES

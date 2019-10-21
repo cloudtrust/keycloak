@@ -14,7 +14,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class ConditionalBlockRoleAuthenticatorFactory implements ConditionalBlockAuthenticatorFactory {
-    private static final String PROVIDER_ID = "conditional-user-role";
+    public static final String PROVIDER_ID = "conditional-user-role";
     protected static final String CONDITIONAL_USER_ROLE = "condUserRole";
 
     private static List<ProviderConfigProperty> commonConfig;

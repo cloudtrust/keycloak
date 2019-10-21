@@ -142,16 +142,17 @@
       "username" : "user-with-two-configured-otp",
       "enabled": true,
       "email" : "otp2@redhat.com",
+      "realmRoles": ["user"],
       "credentials" : [
-        {
-          "type" : "password",
-          "value" : "password"
-        },
         {
           "id" : "first",
           "type" : "otp",
           "secretData" : "{\"value\":\"DJmQfC73VGFhw7D4QJ8A\"}",
           "credentialData" : "{\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\",\"subType\":\"totp\"}"
+        },
+        {
+          "type" : "password",
+          "value" : "password"
         },
         {
           "id" : "second",

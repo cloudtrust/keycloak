@@ -12,7 +12,7 @@ import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.provider.ProviderConfigProperty;
 
 public class ConditionalBlockUserConfiguredAuthenticatorFactory implements ConditionalBlockAuthenticatorFactory {
-    private static final String PROVIDER_ID = "conditional-user-configured";
+    public static final String PROVIDER_ID = "conditional-user-configured";
     protected static final String CONDITIONAL_USER_ROLE = "condUserConfigured";
 
     @Override
