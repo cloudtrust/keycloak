@@ -18,6 +18,7 @@
 
 package org.keycloak.testsuite.forms;
 
+import java.util.Arrays;
 import java.util.List;
 
 import javax.mail.internet.MimeMessage;
@@ -35,6 +36,7 @@ import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.models.AuthenticationFlowModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.utils.DefaultAuthenticationFlows;
+import org.keycloak.models.utils.TimeBasedOTP;
 import org.keycloak.representations.idm.AuthenticationFlowRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
@@ -42,14 +44,17 @@ import org.keycloak.testsuite.AbstractTestRealmKeycloakTest;
 import org.keycloak.testsuite.admin.ApiUtil;
 import org.keycloak.testsuite.admin.authentication.AbstractAuthenticationTest;
 import org.keycloak.testsuite.model.ClientModelTest;
+import org.keycloak.testsuite.pages.AccountTotpPage;
 import org.keycloak.testsuite.pages.AppPage;
 import org.keycloak.testsuite.pages.ErrorPage;
+import org.keycloak.testsuite.pages.LoginConfigTotpPage;
 import org.keycloak.testsuite.pages.LoginPage;
 import org.keycloak.testsuite.pages.LoginPasswordResetPage;
 import org.keycloak.testsuite.pages.LoginPasswordUpdatePage;
 import org.keycloak.testsuite.pages.LoginTotpPage;
 import org.keycloak.testsuite.pages.LoginUsernameOnlyPage;
 import org.keycloak.testsuite.pages.PasswordPage;
+import org.keycloak.testsuite.runonserver.RunOnServer;
 import org.keycloak.testsuite.runonserver.RunOnServerDeployment;
 import org.keycloak.testsuite.util.FlowUtil;
 import org.keycloak.testsuite.util.GreenMailRule;
@@ -64,8 +69,9 @@ import static org.keycloak.testsuite.arquillian.DeploymentTargetModifier.AUTH_SE
  * Test for the various alternatives of reset-credentials flow or browser flow (non-default setup of the  flows)
  *
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
+ * @author <a href="mailto:jlieskov@redhat.com">Jan Lieskovsky</a>
  */
-public class ResetPasswordAlternativeFlowsTest extends AbstractTestRealmKeycloakTest {
+public class ResetCredentialsAlternativeFlowsTest extends AbstractTestRealmKeycloakTest {
 
     @Deployment
     @TargetsContainer(AUTH_SERVER_CURRENT)
@@ -98,6 +104,12 @@ public class ResetPasswordAlternativeFlowsTest extends AbstractTestRealmKeycloak
     protected LoginPasswordUpdatePage updatePasswordPage;
 
     @Page
+    protected AccountTotpPage accountTotpPage;
+
+    @Page
+    protected LoginConfigTotpPage totpPage;
+
+    @Page
     protected LoginTotpPage loginTotpPage;
 
     @Page
@@ -105,6 +117,8 @@ public class ResetPasswordAlternativeFlowsTest extends AbstractTestRealmKeycloak
 
     @Page
     protected AppPage appPage;
+
+    protected TimeBasedOTP totp = new TimeBasedOTP();
 
     @Override
     public void configureTestRealm(RealmRepresentation testRealm) {
@@ -239,7 +253,12 @@ public class ResetPasswordAlternativeFlowsTest extends AbstractTestRealmKeycloak
     public void testResetCredentialsFlowWithUsernameProvidedFromBrowserFlow() throws Exception {
         try {
             BrowserFlowTest.configureBrowserFlowWithAlternativeCredentials(testingClient);
-            configureResetCredentialsFlowWithoutChooseUser();
+            final String newFlowAlias = "resetcred - alternative";
+            // Configure reset-credentials flow without ResetCredentialsChooseUser authenticator
+            configureResetCredentialsRemoveExecutionsAndBindTheFlow(
+                    newFlowAlias,
+                    Arrays.asList("reset-credentials-choose-user")
+            );
 
             // provides username
             loginUsernameOnlyPage.open();
@@ -293,19 +312,6 @@ public class ResetPasswordAlternativeFlowsTest extends AbstractTestRealmKeycloak
     }
 
 
-    // Configure reset-credentials flow without ResetCredentialsChooseUser authenticator.
-    // This is good setup together with browser flow configured to have separate username/password screens
-    private void configureResetCredentialsFlowWithoutChooseUser() {
-        final String newFlowAlias = "resetcred - alternative";
-        testingClient.server("test").run(session -> FlowUtil.inCurrentRealm(session).copyResetCredentialsFlow(newFlowAlias));
-        testingClient.server("test").run(session -> FlowUtil.inCurrentRealm(session)
-                .selectFlow(newFlowAlias)
-                .removeExecution(0)
-                .defineAsResetCredentialsFlow()
-        );
-    }
-
-
     private void revertFlows() {
         List<AuthenticationFlowRepresentation> flows = testRealm().flows().getFlows();
 
@@ -315,15 +321,109 @@ public class ResetPasswordAlternativeFlowsTest extends AbstractTestRealmKeycloak
         realm.setResetCredentialsFlow(DefaultAuthenticationFlows.RESET_CREDENTIALS_FLOW);
         testRealm().update(realm);
 
-        // Delete created flows
-        AuthenticationFlowRepresentation newBrowserFlow = AbstractAuthenticationTest.findFlowByAlias("browser - alternative", flows);
-        if (newBrowserFlow != null) {
-            testRealm().flows().deleteFlow(newBrowserFlow.getId());
+        // Delete flows previously created within various tests
+        final List<String> aliasesOfExistingFlows = Arrays.asList(
+                "browser - alternative",
+                "resetcred - alternative",
+                "resetcred - KEYCLOAK-11753 - test"
+        );
+
+        for(String existingFlowAlias : aliasesOfExistingFlows) {
+            AuthenticationFlowRepresentation flowRepresentation = AbstractAuthenticationTest.findFlowByAlias(existingFlowAlias, flows);
+            if (flowRepresentation != null) {
+                testRealm().flows().deleteFlow(flowRepresentation.getId());
+            }
+        }
+    }
+
+
+    // Create a copy of the default reset credentials flow with the specified flow alias if it doesn't exist yet
+    // Remove execution(s), specified by (a list of) providerId(s) from the flow
+    // Finally bind / define the flow as the reset credential one
+    private void configureResetCredentialsRemoveExecutionsAndBindTheFlow(String newFlowAlias, List<String> providerIdsToRemove) {
+        testingClient.server("test").run(session -> {
+            // Create a copy of the default reset credentials flow with the specified flow alias if it doesn't exist yet
+            if(session.getContext().getRealm().getFlowByAlias(newFlowAlias) == null) {
+                FlowUtil.inCurrentRealm(session).copyResetCredentialsFlow(newFlowAlias);
+            }
+        });
+
+        for(String providerId : providerIdsToRemove) {
+            // For each execution to be removed its index within the flow based on providerId
+            int executionIndex = realmsResouce().realm("test").flows().getExecutions(newFlowAlias)
+                    .stream()
+                    .filter(e -> e.getProviderId().equals(providerId))
+                    .mapToInt(e -> e.getIndex())
+                    .findFirst()
+                    .getAsInt();
+
+            // Remove the execution(s)
+            testingClient.server("test").run(session -> FlowUtil.inCurrentRealm(session)
+                    .selectFlow(newFlowAlias)
+                    .removeExecution(executionIndex)
+            );
         }
 
-        AuthenticationFlowRepresentation newResetCredFlow = AbstractAuthenticationTest.findFlowByAlias("resetcred - alternative", flows);
-        if (newResetCredFlow != null) {
-            testRealm().flows().deleteFlow(newResetCredFlow.getId());
+        // Bind the flow as the reset-credentials one
+        testingClient.server("test").run(session -> FlowUtil.inCurrentRealm(session)
+                .selectFlow(newFlowAlias)
+                .defineAsResetCredentialsFlow()
+        );
+    }
+
+
+    @Test
+    public void resetCredentialsVerifyCustomOtpLabelSetProperly() {
+        try {
+            // Make a copy of the default Reset Credentials flow, but:
+            // * Without 'Send Reset Email' authenticator,
+            // * Without 'Reset Password' authenticator
+            final String newFlowAlias = "resetcred - KEYCLOAK-11753 - test";
+            configureResetCredentialsRemoveExecutionsAndBindTheFlow(
+                    newFlowAlias,
+                    Arrays.asList("reset-credential-email", "reset-password")
+            );
+
+            // Login & set up the initial OTP code for the user
+            loginPage.open();
+            loginPage.login("login@test.com", "password");
+            accountTotpPage.open();
+            Assert.assertTrue(accountTotpPage.isCurrent());
+            String customOtpLabel = "my-original-otp-label";
+            accountTotpPage.configure(totp.generateTOTP(accountTotpPage.getTotpSecret()), customOtpLabel);
+
+            // Logout
+            oauth.openLogout();
+
+            // Go to login page & click "Forgot password" link to perform the custom 'Reset Credential' flow
+            loginPage.open();
+            loginPage.resetPassword();
+
+            // Should be on reset password page now. Provide email of the user & click Submit button
+            Assert.assertTrue(resetPasswordPage.isCurrent());
+            resetPasswordPage.changePassword("login@test.com");
+
+            // Since 'Send Reset Email' & 'Reset Password' authenticators got removed above,
+            // the next action should be 'Reset OTP' -- verify that
+            Assert.assertTrue(totpPage.isCurrent());
+
+            // Provide updated form of the OTP label, to be used within 'Reset OTP' (next) step
+            customOtpLabel = "my-reset-otp-label";
+
+            // Reset OTP label to a custom value as part of Reset Credentials flow
+            totpPage.configure(totp.generateTOTP(totpPage.getTotpSecret()), customOtpLabel);
+
+            // Open OTP Authenticator account page
+            accountTotpPage.open();
+            Assert.assertTrue(accountTotpPage.isCurrent());
+
+            // Verify OTP authenticator with requested label was created
+            String pageSource = driver.getPageSource();
+            Assert.assertTrue(pageSource.contains(customOtpLabel));
+
+        // Undo setup changes performed within the test
+        } finally {
+            revertFlows();
         }
     }
 }

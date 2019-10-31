@@ -135,6 +135,9 @@ public class RequiredActionTotpSetupTest extends AbstractTestRealmKeycloakTest {
 
         assertTrue(totpPage.isCurrent());
 
+        // KEYCLOAK-11753 - Verify OTP label element present on "Configure OTP" required action form
+        driver.findElement(By.id("userLabel"));
+
         totpPage.configure(totp.generateTOTP(totpPage.getTotpSecret()));
 
         String authSessionId = events.expectRequiredAction(EventType.UPDATE_TOTP).user(userId).detail(Details.USERNAME, "setuptotp").assertEvent()
@@ -197,6 +200,9 @@ public class RequiredActionTotpSetupTest extends AbstractTestRealmKeycloakTest {
 
         assertTrue(pageSource.contains("Unable to scan?"));
         assertFalse(pageSource.contains("Scan barcode?"));
+
+        // KEYCLOAK-11753 - Verify OTP label element present on "Configure OTP" required action form
+        driver.findElement(By.id("userLabel"));
     }
 
     // KEYCLOAK-7081
@@ -255,6 +261,32 @@ public class RequiredActionTotpSetupTest extends AbstractTestRealmKeycloakTest {
 
         assertFalse(pageSource.contains("Unable to scan?"));
         assertTrue(pageSource.contains("Scan barcode?"));
+    }
+
+    @Test
+    public void setupTotpRegisterVerifyCustomOtpLabelSetProperly() {
+        loginPage.open();
+        loginPage.clickRegister();
+        registerPage.register("firstName", "lastName", "email@mail.com", "setupTotp", "password", "password");
+
+        String userId = events.expectRegister("setupTotp", "email@mail.com").assertEvent().getUserId();
+
+        assertTrue(totpPage.isCurrent());
+
+        // KEYCLOAK-11753 - Verify OTP label element present on "Configure OTP" required action form
+        driver.findElement(By.id("userLabel"));
+
+        String customOtpLabel = "my-custom-otp-label";
+
+        // Set OTP label to a custom value
+        totpPage.configure(totp.generateTOTP(totpPage.getTotpSecret()), customOtpLabel);
+
+        // Open account page & verify OTP authenticator with requested label was created
+        accountTotpPage.open();
+        accountTotpPage.assertCurrent();
+
+        String pageSource = driver.getPageSource();
+        assertTrue(pageSource.contains(customOtpLabel));
     }
 
     @Test

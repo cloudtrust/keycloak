@@ -74,9 +74,10 @@ public class ConsoleUpdateTotp implements RequiredActionProvider {
         MultivaluedMap<String, String> formData = context.getHttpRequest().getDecodedFormParameters();
         String challengeResponse = formData.getFirst("totp");
         String totpSecret = context.getAuthenticationSession().getAuthNote("totpSecret");
+        String userLabel = formData.getFirst("userLabel");
 
         OTPPolicy policy = context.getRealm().getOTPPolicy();
-        OTPCredentialModel credentialModel = OTPCredentialModel.createFromPolicy(context.getRealm(), totpSecret);
+        OTPCredentialModel credentialModel = OTPCredentialModel.createFromPolicy(context.getRealm(), totpSecret, userLabel);
         if (Validation.isBlank(challengeResponse)) {
             context.challenge(challenge(context).message(Messages.MISSING_TOTP));
             return;

@@ -69,9 +69,10 @@ public class UpdateTotp implements RequiredActionProvider, RequiredActionFactory
         String challengeResponse = formData.getFirst("totp");
         String totpSecret = formData.getFirst("totpSecret");
         String mode = formData.getFirst("mode");
+        String userLabel = formData.getFirst("userLabel");
 
         OTPPolicy policy = context.getRealm().getOTPPolicy();
-        OTPCredentialModel credentialModel = OTPCredentialModel.createFromPolicy(context.getRealm(), totpSecret);
+        OTPCredentialModel credentialModel = OTPCredentialModel.createFromPolicy(context.getRealm(), totpSecret, userLabel);
         if (Validation.isBlank(challengeResponse)) {
             Response challenge = context.form()
                     .setAttribute("mode", mode)
