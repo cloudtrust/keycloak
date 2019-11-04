@@ -626,6 +626,7 @@ public class UserResource {
     public void removeCredential(final @PathParam("credentialId") String credentialId) {
         auth.users().requireManage(user);
         session.userCredentialManager().removeStoredCredential(realm, user, credentialId);
+        session.userCache().evict(realm, user);
         adminEvent.operation(OperationType.ACTION).resourcePath(session.getContext().getUri()).success();
     }
 

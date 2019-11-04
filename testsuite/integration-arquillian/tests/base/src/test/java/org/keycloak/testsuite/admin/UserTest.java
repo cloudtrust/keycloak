@@ -83,12 +83,12 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.is;
@@ -1556,4 +1556,31 @@ public class UserTest extends AbstractAdminTest {
         assertAdminEvents.assertEvent(realmId, OperationType.UPDATE, Matchers.nullValue(String.class), rep, ResourceType.REALM);
     }
 
+    @Test
+    public void loginShouldFailAfterPasswordDeleted() {
+        String userName = "credential-tester";
+        String userPass = "s3cr37";
+        String userId = createUser(REALM_NAME, userName, userPass);
+
+        String accountUrl = RealmsResource.accountUrl(UriBuilder.fromUri(getAuthServerRoot())).build(REALM_NAME).toString();
+        driver.navigate().to(accountUrl);
+        assertEquals("Test user should be on the login page.", "Log In", PageUtils.getPageTitle(driver));
+        loginPage.login(userName, userPass);
+        assertTrue("Test user should be successfully logged in.", driver.getTitle().contains("Account Management"));
+        accountPage.logOut();
+        
+        Optional<CredentialRepresentation> passwordCredential = 
+                realm.users().get(userId).credentials().stream()
+                .filter(c -> CredentialRepresentation.PASSWORD.equals(c.getType()))
+                .findFirst();
+        assertTrue("Test user should have a password credential set.", passwordCredential.isPresent());
+        realm.users().get(userId).removeCredential(passwordCredential.get().getId());
+        
+        driver.navigate().to(accountUrl);
+        assertEquals("Test user should be on the login page.", "Log In", PageUtils.getPageTitle(driver));
+        loginPage.login(userName, userPass);
+        assertTrue("Test user should fail to log in after password was deleted.", 
+                driver.getCurrentUrl().contains(String.format("/realms/%s/login-actions/authenticate", REALM_NAME)));
+    }
+    
 }
