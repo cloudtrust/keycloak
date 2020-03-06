@@ -126,4 +126,28 @@ public class SPMetadataDescriptor {
 
         return keyInfo;
     }
+
+    public static String xmlKeyInfo(String indentation, String keyId, String pemEncodedCertificate, String purpose, boolean declareDSigNamespace) {
+        if (pemEncodedCertificate == null) {
+            return "";
+        }
+
+        StringBuilder target = new StringBuilder()
+          .append(indentation).append("<KeyDescriptor use=\"").append(purpose).append("\">\n")
+          .append(indentation).append("  <dsig:KeyInfo").append(declareDSigNamespace ? " xmlns:dsig=\"http://www.w3.org/2000/09/xmldsig#\">\n" : ">\n");
+
+        if (keyId != null) {
+            target.append(indentation).append("    <dsig:KeyName>").append(keyId).append("</dsig:KeyName>\n");
+        }
+
+        target
+          .append(indentation).append("    <dsig:X509Data>\n")
+          .append(indentation).append("      <dsig:X509Certificate>").append(pemEncodedCertificate).append("</dsig:X509Certificate>\n")
+          .append(indentation).append("    </dsig:X509Data>\n")
+          .append(indentation).append("  </dsig:KeyInfo>\n")
+          .append(indentation).append("</KeyDescriptor>\n")
+        ;
+
+        return target.toString();
+    }
 }

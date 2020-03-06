@@ -196,7 +196,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
 
         String soapMessage = DocumentUtil.asString(response);
         assertThat(soapMessage, not(containsString("ArtifactResponse")));
-        assertThat(soapMessage, containsString("Cannot find artifact"));
+        assertThat(soapMessage, containsString("invalid_artifact"));
     }
 
     @Test
@@ -312,8 +312,8 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 SamlClient.Binding.POST, builder);
 
         ArtifactResolutionService ars = new ArtifactResolutionService("http://127.0.0.1:8082/").setResponseDocument(doc);
+        Thread arsThread = new Thread(ars);
         try {
-            Thread arsThread = new Thread(ars);
             arsThread.start();
             synchronized (ars) {
                 ars.wait();
@@ -326,6 +326,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
             }
         } finally {
             ars.stop();
+            arsThread.join();
         }
     }
 
@@ -347,8 +348,8 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 SamlClient.Binding.REDIRECT, builder);
 
         ArtifactResolutionService ars = new ArtifactResolutionService("http://127.0.0.1:8082/").setResponseDocument(doc);
+        Thread arsThread = new Thread(ars);
         try {
-            Thread arsThread = new Thread(ars);
             arsThread.start();
             synchronized (ars) {
                 ars.wait();
@@ -361,6 +362,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
             }
         } finally {
             ars.stop();
+            arsThread.join();
         }
     }
 
@@ -381,8 +383,8 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 SamlClient.Binding.POST, builder);
 
         ArtifactResolutionService ars = new ArtifactResolutionService("http://127.0.0.1:8082/").setResponseDocument(doc);
+        Thread arsThread = new Thread(ars);
         try {
-            Thread arsThread = new Thread(ars);
             arsThread.start();
             synchronized (ars) {
                 ars.wait();
@@ -391,6 +393,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
             }
         } finally {
             ars.stop();
+            arsThread.join();
         }
     }
 
@@ -408,8 +411,8 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 POST, builder);
 
         ArtifactResolutionService ars = new ArtifactResolutionService("http://127.0.0.1:8082/");
+        Thread arsThread = new Thread(ars);
         try {
-            Thread arsThread = new Thread(ars);
             arsThread.start();
             synchronized (ars) {
                 ars.wait();
@@ -429,6 +432,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
             }
         } finally {
             ars.stop();
+            arsThread.join();
         }
     }
 
@@ -451,8 +455,8 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 REDIRECT, builder);
 
         ArtifactResolutionService ars = new ArtifactResolutionService("http://127.0.0.1:8082/");
+        Thread arsThread = new Thread(ars);
         try {
-            Thread arsThread = new Thread(ars);
             arsThread.start();
             synchronized (ars) {
                 ars.wait();
@@ -475,6 +479,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
             }
         } finally {
             ars.stop();
+            arsThread.join();
         }
     }
 

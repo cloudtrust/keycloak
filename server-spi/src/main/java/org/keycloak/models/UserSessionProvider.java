@@ -147,6 +147,10 @@ public interface UserSessionProvider extends Provider {
     void removeUserLoginFailure(RealmModel realm, String userId);
     void removeAllUserLoginFailures(RealmModel realm);
 
+    void addArtifactResponse(String realmId, String artifact, String artifactResponse);
+    void removeArtifactResponse(String artifact);
+    String getArtifactResponse(String artifact);
+
     void onRealmRemoved(RealmModel realm);
     void onClientRemoved(RealmModel realm, ClientModel client);
 

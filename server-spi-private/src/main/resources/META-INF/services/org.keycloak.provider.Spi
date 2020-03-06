@@ -68,6 +68,7 @@ org.keycloak.authorization.store.StoreFactorySpi
 org.keycloak.authorization.AuthorizationSpi
 org.keycloak.models.cache.authorization.CachedStoreFactorySpi
 org.keycloak.protocol.oidc.TokenIntrospectionSpi
+org.keycloak.protocol.saml.ArtifactResolverSpi
 org.keycloak.policy.PasswordPolicySpi
 org.keycloak.policy.PasswordPolicyManagerSpi
 org.keycloak.transaction.TransactionManagerLookupSpi

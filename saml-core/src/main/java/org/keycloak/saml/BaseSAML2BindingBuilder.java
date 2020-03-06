@@ -323,7 +323,7 @@ public class BaseSAML2BindingBuilder<T extends BaseSAML2BindingBuilder> {
         Map<String, String> inputTypes = new HashMap<>();
         inputTypes.put(key, samlResponse);
         if (isNotNull(relayState)) {
-            inputTypes.put("RelayState", escapeAttribute(relayState));
+            inputTypes.put("RelayState", relayState);
         }
 
         return buildHtmlForm(actionUrl, inputTypes);
@@ -344,7 +344,7 @@ public class BaseSAML2BindingBuilder<T extends BaseSAML2BindingBuilder> {
         builder.append("<p>Redirecting, please wait.</p>");
 
         for (String key: inputTypes.keySet()) {
-            builder.append("<INPUT TYPE=\"HIDDEN\" NAME=\"").append(key).append("\"").append(" VALUE=\"").append(inputTypes.get(key)).append("\"/>");
+            builder.append("<INPUT TYPE=\"HIDDEN\" NAME=\"").append(key).append("\"").append(" VALUE=\"").append(escapeAttribute(inputTypes.get(key))).append("\"/>");
         }
 
         builder.append("<NOSCRIPT>")

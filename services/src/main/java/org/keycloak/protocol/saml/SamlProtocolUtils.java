@@ -229,51 +229,6 @@ public class SamlProtocolUtils {
     }
 
     /**
-     * Creates an artifact. Format is:
-     *
-     * SAML_artifact := B64(TypeCode EndpointIndex RemainingArtifact)
-     *
-     * TypeCode := 0x0004
-     * EndpointIndex := Byte1Byte2
-     * RemainingArtifact := SourceID MessageHandle
-     *
-     * SourceID := 20-byte_sequence, used by the artifact receiver to determine artifact issuer
-     * MessageHandle := 20-byte_sequence
-     *
-     * @param entityId the entity id to encode in the sourceId
-     * @return an artifact
-     * @throws ProcessingException
-     * @throws IOException
-     */
-    public static String buildArtifact(String entityId) throws ProcessingException, IOException {
-        /** SAML 2 artifact type code (0x0004). */
-        final byte[] TYPE_CODE = { 0, 4 };
-        try {
-            SecureRandom handleGenerator = SecureRandom.getInstance("SHA1PRNG");
-            byte[] trimmedIndex = new byte[2];
-
-            MessageDigest sha1Digester = MessageDigest.getInstance("SHA-1");
-            byte[] source = sha1Digester.digest(entityId.getBytes(Charsets.UTF_8));
-
-            byte[] assertionHandle;
-            assertionHandle = new byte[20];
-            handleGenerator.nextBytes(assertionHandle);
-
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            bos.write(TYPE_CODE);
-            bos.write(trimmedIndex);
-            bos.write(source);
-            bos.write(assertionHandle);
-
-            byte[] artifact = bos.toByteArray();
-
-            return Base64.getEncoder().encodeToString(artifact);
-        } catch (NoSuchAlgorithmException e) {
-            throw new ProcessingException("JVM does not support required cryptography algorithms: SHA-1/SHA1PRNG.");
-        }
-    }
-
-    /**
      * Takes a document (containing the saml Response), and inserts it as the body of an ArtifactResponse. The ArtifactResponse is returned as
      * a Document.
      * @param samlResponse a saml Response message
@@ -294,13 +249,13 @@ public class SamlProtocolUtils {
         artifactResponse.setStatus(statusType);
         Document artifactResponseDocument = null;
         try {
-            artifactResponseDocument = convert(artifactResponse);
+            artifactResponseDocument = SamlProtocolUtils.convert(artifactResponse);
         } catch (ParsingException e) {
-            throw new ProcessingException(e.getMessage());
+            throw new ProcessingException(e);
         }
         Element artifactResponseElement = artifactResponseDocument.getDocumentElement();
 
-        Node issuer = artifactResponseDocument.importNode(getIssuer(samlResponse), true);
+        Node issuer = artifactResponseDocument.importNode(SamlProtocolUtils.getIssuer(samlResponse), true);
         if (issuer != null) {
             artifactResponseElement.appendChild(issuer);
         }

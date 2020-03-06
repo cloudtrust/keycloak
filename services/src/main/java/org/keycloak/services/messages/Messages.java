@@ -259,4 +259,7 @@ public class Messages {
 
     public static final String DELETE_ACCOUNT_LACK_PRIVILEDGES = "deletingAccountForbidden";
     public static final String DELETE_ACCOUNT_ERROR = "errorDeletingAccount";
+
+    public static final String ARTIFACT_RESOLUTION_SERVICE_ERROR = "artifactResolutionServiceError";
+    public static final String ARTIFACT_RESOLUTION_SERVICE_INVALID_RESPONSE = "artifactResolutionServiceInvalidResponse";
 }

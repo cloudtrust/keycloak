@@ -36,6 +36,7 @@
                 <local-cache name="clientSessions"/>
                 <local-cache name="offlineClientSessions"/>
                 <local-cache name="loginFailures"/>
+                <local-cache name="artifacts"/>
                 <local-cache name="work"/>
                 <local-cache name="authorization">
                     <heap-memory size="10000"/>
@@ -102,6 +103,7 @@
                 <distributed-cache name="clientSessions" owners="1"/>
                 <distributed-cache name="offlineClientSessions" owners="1"/>
                 <distributed-cache name="loginFailures" owners="1"/>
+                <distributed-cache name="artifacts" owners="1"/>
                 <local-cache name="authorization">
                     <heap-memory size="10000"/>
                 </local-cache>
