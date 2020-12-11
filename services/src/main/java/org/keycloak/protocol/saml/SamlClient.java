@@ -127,6 +127,14 @@ public class SamlClient extends ClientConfigResolver {
         client.setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, Boolean.toString(val));
     }
 
+    public boolean useArtifactBindingLogout(){
+        return "true".equals(resolveAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING_LOGOUT));
+    }
+
+    public void setUseArtifactBindingLogout(boolean val) {
+        client.setAttribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING_LOGOUT, Boolean.toString(val));
+    }
+
     public boolean requiresRealmSignature() {
         return "true".equals(resolveAttribute(SamlConfigAttributes.SAML_SERVER_SIGNATURE));
     }

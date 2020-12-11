@@ -556,7 +556,8 @@ public class SamlService extends AuthorizationEndpointBase {
 
                     //artifact binding state must be attached to the user session upon logout, as authenticated session
                     //no longer exists when the LogoutResponse message is sent
-                    if ("true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get()))){
+                    if ("true".equals(clientSession.getNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get()))
+                            && samlClient.useArtifactBindingLogout()) {
                         userSession.setNote(JBossSAMLURIConstants.SAML_HTTP_ARTIFACT_BINDING.get(), "true");
                     }
                 }

@@ -492,6 +492,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 .clients().get(salesRep.getId())
                 .update(ClientBuilder.edit(salesRep)
                         .attribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
+                        .attribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING_LOGOUT, "true")
                         .attribute(SamlConfigAttributes.SAML_SERVER_SIGNATURE, "true")
                         .frontchannelLogout(true)
                         .attribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE, "http://url")
@@ -534,6 +535,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 .clients().get(salesRep.getId())
                 .update(ClientBuilder.edit(salesRep)
                         .attribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
+                        .attribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING_LOGOUT, "true")
                         .frontchannelLogout(true)
                         .attribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE, "http://url")
                         .build());
@@ -565,6 +567,7 @@ public class ArtifactBindingTest extends AbstractSamlTest {
                 .clients().get(salesRep.getId())
                 .update(ClientBuilder.edit(salesRep)
                         .attribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING, "true")
+                        .attribute(SamlConfigAttributes.SAML_ARTIFACT_BINDING_LOGOUT, "true")
                         .frontchannelLogout(true)
                         .attribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_REDIRECT_ATTRIBUTE, "http://url")
                         .build());
