@@ -865,8 +865,10 @@ public class SamlProtocol implements LoginProtocol {
             throws ConfigurationException, ProcessingException {
 
         try {
+            // performs necessary signatures and encryption on the logout response element
+            bindingBuilder.postBinding(samlDocument);
+            // wrap the logout response inside an artifact response element
             Document artifactResponse = SamlProtocolUtils.buildArtifactResponse(samlDocument);
-            bindingBuilder.postBinding(artifactResponse); //this step performs necessary signatures and encryption
 
             String entityId = RealmsResource.realmBaseUrl(uriInfo).build(realm.getName()).toString();
             String artifact = getArtifactResolver().buildLogoutArtifact(entityId, artifactResponse, userSession);
