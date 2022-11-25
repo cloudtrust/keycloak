@@ -74,6 +74,11 @@ public class SamlEcpProfileService extends SamlService {
                 }
 
                 @Override
+                protected String getBindingType() {
+                    return SamlProtocol.SAML_SOAP_BINDING;
+                }
+
+                @Override
                 protected boolean isDestinationRequired() {
                     return false;
                 }

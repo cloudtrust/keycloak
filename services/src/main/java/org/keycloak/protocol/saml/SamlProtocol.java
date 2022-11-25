@@ -54,6 +54,8 @@ import org.keycloak.protocol.saml.mappers.SAMLLoginResponseMapper;
 import org.keycloak.protocol.saml.mappers.SAMLNameIdMapper;
 import org.keycloak.protocol.saml.mappers.SAMLRoleListMapper;
 import org.keycloak.protocol.saml.preprocessor.SamlAuthenticationPreprocessor;
+import org.keycloak.protocol.saml.profile.util.Soap;
+import org.keycloak.saml.BaseSAML2BindingBuilder;
 import org.keycloak.saml.SAML2ErrorResponseBuilder;
 import org.keycloak.saml.SAML2LoginResponseBuilder;
 import org.keycloak.saml.SAML2LogoutRequestBuilder;
@@ -68,6 +70,8 @@ import org.keycloak.saml.common.exceptions.ParsingException;
 import org.keycloak.saml.common.exceptions.ProcessingException;
 import org.keycloak.saml.common.util.XmlKeyInfoKeyNameTransformer;
 import org.keycloak.saml.processing.api.saml.v2.request.SAML2Request;
+import org.keycloak.saml.processing.api.saml.v2.response.SAML2Response;
+import org.keycloak.saml.processing.core.saml.v2.common.SAMLDocumentHolder;
 import org.keycloak.saml.processing.core.util.KeycloakKeySamlExtensionGenerator;
 import org.keycloak.services.ErrorPage;
 import org.keycloak.services.managers.AuthenticationSessionManager;
@@ -83,6 +87,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
+import javax.xml.soap.SOAPException;
+import javax.xml.soap.SOAPMessage;
 import java.io.IOException;
 import java.net.URI;
 import java.security.PublicKey;
@@ -112,6 +118,7 @@ public class SamlProtocol implements LoginProtocol {
     public static final String SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE = "saml_single_logout_service_url_post";
     public static final String SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE = "saml_single_logout_service_url_artifact";
     public static final String SAML_SINGLE_LOGOUT_SERVICE_URL_REDIRECT_ATTRIBUTE = "saml_single_logout_service_url_redirect";
+    public static final String SAML_SINGLE_LOGOUT_SERVICE_URL_SOAP_ATTRIBUTE = "saml_single_logout_service_url_soap";
     public static final String SAML_ARTIFACT_RESOLUTION_SERVICE_URL_ATTRIBUTE = "saml_artifact_resolution_service_url";
     public static final String LOGIN_PROTOCOL = "saml";
     public static final String SAML_BINDING = "saml_binding";
@@ -608,8 +615,12 @@ public class SamlProtocol implements LoginProtocol {
 
     public static String getLogoutServiceUrl(KeycloakSession session, ClientModel client, String bindingType, boolean backChannelLogout) {
         String logoutServiceUrl = null;
-        // backchannel logout doesn't support sending artifacts
-        if (!backChannelLogout && useArtifactForLogout(client)) {
+
+        if (SAML_SOAP_BINDING.equals(bindingType)) {
+            // standard backchannel logout; cannot do front channel with SOAP binding
+            return client.getAttribute(SAML_SINGLE_LOGOUT_SERVICE_URL_SOAP_ATTRIBUTE);
+        } else if (!backChannelLogout && useArtifactForLogout(client)) {
+            // backchannel logout doesn't support sending artifacts
             logoutServiceUrl = client.getAttribute(SAML_SINGLE_LOGOUT_SERVICE_URL_ARTIFACT_ATTRIBUTE);
         } else if (SAML_POST_BINDING.equals(bindingType)) {
             logoutServiceUrl = client.getAttribute(SAML_SINGLE_LOGOUT_SERVICE_URL_POST_ATTRIBUTE);
@@ -748,6 +759,38 @@ public class SamlProtocol implements LoginProtocol {
     public Response backchannelLogout(UserSessionModel userSession, AuthenticatedClientSessionModel clientSession) {
         ClientModel client = clientSession.getClient();
         SamlClient samlClient = new SamlClient(client);
+
+        // real backchannel logout if SOAP binding is supported (#9548)
+        String soapLogoutUrl = getLogoutServiceUrl(session, client, SAML_SOAP_BINDING, true);
+        if (soapLogoutUrl != null) {
+            try {
+                LogoutRequestType logoutRequest = createLogoutRequest(soapLogoutUrl, clientSession, client);
+                Document samlLogoutRequest = createBindingBuilder(samlClient, false).postBinding(SAML2Request.convert(logoutRequest)).getDocument();
+                SOAPMessage soapResponse = Soap.createMessage().addToBody(samlLogoutRequest).call(soapLogoutUrl);
+                Document logoutResponse = Soap.extractSoapMessage(soapResponse);
+                SAMLDocumentHolder samlDoc = SAML2Response.getSAML2ObjectFromDocument(logoutResponse);
+                if (!(samlDoc.getSamlObject() instanceof StatusResponseType)) {
+                    throw new RuntimeException("Logout response received from client is not an StatusResponseType");
+                }
+                StatusResponseType logoutStatus = (StatusResponseType)samlDoc.getSamlObject();
+                if (!logoutStatus.getStatus().getStatusCode().getValue().equals(JBossSAMLURIConstants.STATUS_SUCCESS.getUri())) {
+                    logger.warnf("saml logout reported as not successful for client: %s; status=%s", client.getClientId(),
+                            logoutStatus.getStatus().getStatusCode().getValue());
+                }
+            } catch (SOAPException e) {
+                logger.warnf(e, "Logout failed for client %s", client.getClientId());
+                return Response.ok().build();
+            } catch (Exception e) {
+                logger.warn("failed to execute saml soap logout", e);
+                return Response.serverError().build();
+            }
+        }
+        else {
+            logger.warnf("Can't do backchannel logout. No SingleLogoutService SOAP Binding registered for client: %s; fallback on legacy backchannel logout",
+                    client.getClientId());
+        }
+
+        // legacy backchannel logout implementation (send POST / Redirect binding directly to the logout endpoint without going through the browser)
         String logoutUrl = getLogoutServiceUrl(session, client, SAML_POST_BINDING, true);
         if (logoutUrl == null) {
             logger.warnf("Can't do backchannel logout. No SingleLogoutService POST Binding registered for client: %s",

@@ -23,6 +23,7 @@ import org.apache.http.entity.ContentType;
 import org.keycloak.saml.processing.core.saml.v2.util.DocumentUtil;
 import org.keycloak.saml.processing.web.util.PostBindingUtil;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import javax.ws.rs.core.MediaType;
@@ -101,13 +102,26 @@ public final class Soap {
     public static Document extractSoapMessage(SOAPMessage soapMessage) {
         try {
             SOAPBody soapBody = soapMessage.getSOAPBody();
-            Node authnRequestNode = soapBody.getFirstChild();
+            Node authnRequestNode = getFirstChild(soapBody);
             Document document = DocumentUtil.createDocument();
             document.appendChild(document.importNode(authnRequestNode, true));
             return document;
         } catch (Exception e) {
             throw new RuntimeException("Error creating fault message.", e);
         }
+    }
+
+    /**
+     * Get the first direct child that is an XML element
+     * (avoid returning text in case the first child is preceded by some new line)
+     */
+    public static Node getFirstChild(Node parent) {
+        Node n = parent.getFirstChild();
+        while (n != null && !(n instanceof Element)) {
+            n = n.getNextSibling();
+        }
+        if (n == null) return null;
+        return n;
     }
 
     public static class SoapMessageBuilder {

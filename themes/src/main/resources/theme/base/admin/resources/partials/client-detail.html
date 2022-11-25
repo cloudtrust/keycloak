@@ -510,9 +510,17 @@
             <div class="form-group clearfix block" data-ng-show="protocol == 'saml'">
                 <label class="col-md-2 control-label" for="logoutArtifactBinding">{{:: 'logout-service-artifact-binding-url' | translate}}</label>
                 <div class="col-sm-6">
-                    <input ng-model="clientEdit.attributes.saml_single_logout_service_url_artifact" class="form-control" type="text" name="logoutRedirectBinding" id="logoutArtifactBinding" />
+                    <input ng-model="clientEdit.attributes.saml_single_logout_service_url_artifact" class="form-control" type="text" name="logoutArtifactBinding" id="logoutArtifactBinding" />
                 </div>
                 <kc-tooltip>{{:: 'logout-service-artifact-binding-url.tooltip' | translate}}</kc-tooltip>
+            </div>
+
+            <div class="form-group clearfix block" data-ng-show="protocol == 'saml'">
+                <label class="col-md-2 control-label" for="logoutSoapBinding">{{:: 'logout-service-soap-binding-url' | translate}}</label>
+                <div class="col-sm-6">
+                    <input ng-model="clientEdit.attributes.saml_single_logout_service_url_soap" class="form-control" type="text" name="logoutSoapBinding" id="logoutSoapBinding" />
+                </div>
+                <kc-tooltip>{{:: 'logout-service-soap-binding-url.tooltip' | translate}}</kc-tooltip>
             </div>
 
             <div class="form-group clearfix block" data-ng-show="protocol == 'saml'">

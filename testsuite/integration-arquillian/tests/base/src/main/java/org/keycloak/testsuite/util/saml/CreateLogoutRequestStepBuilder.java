@@ -35,7 +35,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
  */
 public class CreateLogoutRequestStepBuilder extends SamlDocumentStepBuilder<LogoutRequestType, CreateLogoutRequestStepBuilder> {
 
-    private final URI authServerSamlUrl;
+    private final URI logoutServerSamlUrl;
     private final String issuer;
     private final Binding requestBinding;
 
@@ -46,9 +46,9 @@ public class CreateLogoutRequestStepBuilder extends SamlDocumentStepBuilder<Logo
     private String signingPrivateKeyPem;
     private String signingCertificate;
 
-    public CreateLogoutRequestStepBuilder(URI authServerSamlUrl, String issuer, Binding requestBinding, SamlClientBuilder clientBuilder) {
+    public CreateLogoutRequestStepBuilder(URI logoutServerSamlUrl, String issuer, Binding requestBinding, SamlClientBuilder clientBuilder) {
         super(clientBuilder);
-        this.authServerSamlUrl = authServerSamlUrl;
+        this.logoutServerSamlUrl = logoutServerSamlUrl;
         this.issuer = issuer;
         this.requestBinding = requestBinding;
     }
@@ -109,7 +109,7 @@ public class CreateLogoutRequestStepBuilder extends SamlDocumentStepBuilder<Logo
     @Override
     public HttpUriRequest perform(CloseableHttpClient client, URI currentURI, CloseableHttpResponse currentResponse, HttpClientContext context) throws Exception {
         SAML2LogoutRequestBuilder builder = new SAML2LogoutRequestBuilder()
-          .destination(authServerSamlUrl == null ? null : authServerSamlUrl.toString())
+          .destination(logoutServerSamlUrl == null ? null : logoutServerSamlUrl.toString())
           .issuer(issuer)
           .sessionIndex(sessionIndex())
           .nameId(nameId());
@@ -122,8 +122,8 @@ public class CreateLogoutRequestStepBuilder extends SamlDocumentStepBuilder<Logo
         }
 
         return this.signingPrivateKeyPem == null
-          ? requestBinding.createSamlUnsignedRequest(authServerSamlUrl, relayState(), DocumentUtil.getDocument(transformed))
-          : requestBinding.createSamlSignedRequest(authServerSamlUrl, relayState(), DocumentUtil.getDocument(transformed), signingPrivateKeyPem, signingPublicKeyPem, signingCertificate);
+          ? requestBinding.createSamlUnsignedRequest(logoutServerSamlUrl, relayState(), DocumentUtil.getDocument(transformed))
+          : requestBinding.createSamlSignedRequest(logoutServerSamlUrl, relayState(), DocumentUtil.getDocument(transformed), signingPrivateKeyPem, signingPublicKeyPem, signingCertificate);
     }
 
 }

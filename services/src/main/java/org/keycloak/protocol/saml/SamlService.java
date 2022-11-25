@@ -598,9 +598,18 @@ public class SamlService extends AuthorizationEndpointBase {
                     }
 
                     try {
+                        event.event(EventType.LOGOUT)
+                                .detail(Details.AUTH_METHOD, userSession.getAuthMethod())
+                                .client(session.getContext().getClient())
+                                .user(userSession.getUser())
+                                .session(userSession)
+                                .detail(Details.USERNAME, userSession.getLoginUsername())
+                                .detail(Details.RESPONSE_MODE, getBindingType());
                         authManager.backchannelLogout(session, realm, userSession, session.getContext().getUri(), clientConnection, headers, true);
+                        event.success();
                     } catch (Exception e) {
                         logger.warn("Failure with backchannel logout", e);
+                        event.error("Failure with backchannel logout");
                     }
 
                 }
@@ -628,6 +637,8 @@ public class SamlService extends AuthorizationEndpointBase {
             try {
                 if (postBinding) {
                     return binding.postBinding(builder.buildDocument()).response(logoutBindingUri);
+                } else if (SamlProtocol.SAML_SOAP_BINDING.equals(logoutBinding)) {
+                    return binding.soapBinding(builder.buildDocument()).response();
                 } else {
                     return binding.redirectBinding(builder.buildDocument()).response(logoutBindingUri);
                 }

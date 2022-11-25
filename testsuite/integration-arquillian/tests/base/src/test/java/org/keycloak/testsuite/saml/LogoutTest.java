@@ -20,8 +20,6 @@ import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.broker.saml.SAMLIdentityProviderConfig;
 import org.keycloak.broker.saml.SAMLIdentityProviderFactory;
 import org.keycloak.dom.saml.v2.SAML2Object;
-import org.keycloak.dom.saml.v2.assertion.AssertionType;
-import org.keycloak.dom.saml.v2.assertion.AuthnStatementType;
 import org.keycloak.dom.saml.v2.assertion.NameIDType;
 import org.keycloak.dom.saml.v2.protocol.AuthnRequestType;
 import org.keycloak.dom.saml.v2.protocol.LogoutRequestType;
@@ -29,6 +27,7 @@ import org.keycloak.dom.saml.v2.protocol.ResponseType;
 import org.keycloak.dom.saml.v2.protocol.StatusResponseType;
 import org.keycloak.events.Details;
 import org.keycloak.events.EventType;
+import org.keycloak.protocol.saml.SamlConfigAttributes;
 import org.keycloak.protocol.saml.SamlProtocol;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.EventRepresentation;
@@ -54,7 +53,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilderException;
@@ -63,13 +61,15 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.junit.Before;
 import org.junit.Test;
+import org.keycloak.testsuite.util.saml.SamlBackchannelLogoutReceiver;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.keycloak.testsuite.util.Matchers.*;
 import static org.keycloak.testsuite.util.SamlClient.Binding.*;
 
@@ -193,6 +193,70 @@ public class LogoutTest extends AbstractSamlTest {
 
         assertThat(samlResponse.getSamlObject(), isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
         assertLogoutEvent(SAML_CLIENT_ID_SALES_POST);
+    }
+
+    @Test
+    public void testSoapBackchannelLogout() {
+        try (SamlBackchannelLogoutReceiver backchannelLogoutReceiver = new SamlBackchannelLogoutReceiver(8082, sales2Rep.getClientId())) {
+            adminClient.realm(REALM_NAME)
+                    .clients().get(sales2Rep.getId())
+                    .update(ClientBuilder.edit(sales2Rep)
+                            .frontchannelLogout(false)
+                            .attribute(SamlProtocol.SAML_SINGLE_LOGOUT_SERVICE_URL_SOAP_ATTRIBUTE, backchannelLogoutReceiver.getUrl())
+                            .attribute(SamlConfigAttributes.SAML_SERVER_SIGNATURE, "true") // sign logout requests
+                            .attribute(SamlConfigAttributes.SAML_FORCE_NAME_ID_FORMAT_ATTRIBUTE, "true") // Force NameID to username
+                            .attribute(SamlConfigAttributes.SAML_NAME_ID_FORMAT_ATTRIBUTE, "username") // Force NameID to username
+                            .build());
+
+            SAMLDocumentHolder samlResponse = prepareLogIntoTwoApps()
+                    .logoutRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST, POST)
+                    .nameId(nameIdRef::get)
+                    .sessionIndex(sessionIndexRef::get)
+                    .build()
+
+                    .getSamlResponse(POST);
+
+            assertThat(samlResponse.getSamlObject(), isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+            assertLogoutEvent(SAML_CLIENT_ID_SALES_POST);
+
+            // check that the logout request sent to the client is compliant and signed
+            assertTrue(backchannelLogoutReceiver.isLogoutRequestReceived());
+            LogoutRequestType logoutRequest = backchannelLogoutReceiver.getLogoutRequest();
+            assertNotNull(backchannelLogoutReceiver.getLogoutRequest().getSignature());
+            // check nameID
+            assertEquals(logoutRequest.getNameID().getValue(), bburkeUser.getUsername());
+        } catch (Exception ex) {
+            fail("unexpected error");
+        }
+    }
+
+    @Test
+    public void testSoapBackchannelLogoutFromSamlClient() {
+        try {
+            adminClient.realm(REALM_NAME)
+                    .clients().get(sales2Rep.getId())
+                    .update(ClientBuilder.edit(sales2Rep)
+                            .frontchannelLogout(false)
+                            .attribute(SamlConfigAttributes.SAML_SERVER_SIGNATURE, "true") // sign logout requests
+                            .attribute(SamlConfigAttributes.SAML_FORCE_NAME_ID_FORMAT_ATTRIBUTE, "true") // Force NameID to username
+                            .attribute(SamlConfigAttributes.SAML_NAME_ID_FORMAT_ATTRIBUTE, "username") // Force NameID to username
+                            .build());
+
+            SAMLDocumentHolder samlLogoutResponse = prepareLogIntoTwoApps()
+                    .clearCookies() // remove cookies, since SOAP calls do not embed cookie normally
+                    .logoutRequest(getAuthServerSamlEndpoint(REALM_NAME), SAML_CLIENT_ID_SALES_POST, SOAP)
+                    .nameId(nameIdRef::get)
+                    .sessionIndex(sessionIndexRef::get)
+                    .build()
+                    .getSamlResponse(SOAP);
+
+            assertThat(samlLogoutResponse.getSamlObject(), isSamlStatusResponse(JBossSAMLURIConstants.STATUS_SUCCESS));
+            assertSoapLogoutEvent(SAML_CLIENT_ID_SALES_POST);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            fail("unexpected error");
+        }
     }
 
     @Test
@@ -325,6 +389,20 @@ public class LogoutTest extends AbstractSamlTest {
         assertEquals(SamlProtocol.SAML_POST_BINDING, logoutEvent.getDetails().get(Details.RESPONSE_MODE));
         assertEquals("saml", logoutEvent.getDetails().get(Details.AUTH_METHOD));
         assertNotNull(logoutEvent.getDetails().get(SamlProtocol.SAML_LOGOUT_REQUEST_ID));
+    }
+
+    private void assertSoapLogoutEvent(String clientId) {
+        List<EventRepresentation> logoutEvents = adminClient.realm(REALM_NAME)
+                .getEvents(Arrays.asList(EventType.LOGOUT.name()), clientId, null, null, null, null, null, null);
+
+        assertFalse(logoutEvents.isEmpty());
+        assertEquals(1, logoutEvents.size());
+
+        EventRepresentation logoutEvent = logoutEvents.get(0);
+
+        assertEquals(bburkeUser.getUsername(), logoutEvent.getDetails().get(Details.USERNAME));
+        assertEquals(SamlProtocol.SAML_SOAP_BINDING, logoutEvent.getDetails().get(Details.RESPONSE_MODE));
+        assertEquals("saml", logoutEvent.getDetails().get(Details.AUTH_METHOD));
     }
 
     private IdentityProviderRepresentation addIdentityProvider() {
