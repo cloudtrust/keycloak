@@ -46,11 +46,21 @@ public class CreateLogoutRequestStepBuilder extends SamlDocumentStepBuilder<Logo
     private String signingPrivateKeyPem;
     private String signingCertificate;
 
+    private boolean skipSignature;
+
     public CreateLogoutRequestStepBuilder(URI logoutServerSamlUrl, String issuer, Binding requestBinding, SamlClientBuilder clientBuilder) {
         super(clientBuilder);
         this.logoutServerSamlUrl = logoutServerSamlUrl;
         this.issuer = issuer;
         this.requestBinding = requestBinding;
+    }
+
+    public CreateLogoutRequestStepBuilder(URI logoutServerSamlUrl, String issuer, Binding requestBinding, SamlClientBuilder clientBuilder, boolean skipSignature) {
+        super(clientBuilder);
+        this.logoutServerSamlUrl = logoutServerSamlUrl;
+        this.issuer = issuer;
+        this.requestBinding = requestBinding;
+        this.skipSignature = skipSignature;
     }
 
     public String sessionIndex() {
@@ -121,7 +131,7 @@ public class CreateLogoutRequestStepBuilder extends SamlDocumentStepBuilder<Logo
             return null;
         }
 
-        return this.signingPrivateKeyPem == null
+        return this.signingPrivateKeyPem == null || skipSignature
           ? requestBinding.createSamlUnsignedRequest(logoutServerSamlUrl, relayState(), DocumentUtil.getDocument(transformed))
           : requestBinding.createSamlSignedRequest(logoutServerSamlUrl, relayState(), DocumentUtil.getDocument(transformed), signingPrivateKeyPem, signingPublicKeyPem, signingCertificate);
     }

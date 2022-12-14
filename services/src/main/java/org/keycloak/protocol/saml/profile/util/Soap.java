@@ -112,8 +112,9 @@ public final class Soap {
     }
 
     /**
-     * Get the first direct child that is an XML element
-     * (avoid returning text in case the first child is preceded by some new line)
+     * Get the first direct child that is an XML element.
+     * In case of pretty-printed XML (with newlines and spaces), this method skips non-element objects (e.g. text)
+     * to really fetch the next XML tag.
      */
     public static Node getFirstChild(Node parent) {
         Node n = parent.getFirstChild();

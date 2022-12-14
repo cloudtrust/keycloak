@@ -772,8 +772,8 @@ public class SamlProtocol implements LoginProtocol {
                 if (!(samlDoc.getSamlObject() instanceof StatusResponseType)) {
                     throw new RuntimeException("Logout response received from client is not an StatusResponseType");
                 }
-                StatusResponseType logoutStatus = (StatusResponseType)samlDoc.getSamlObject();
-                if (!logoutStatus.getStatus().getStatusCode().getValue().equals(JBossSAMLURIConstants.STATUS_SUCCESS.getUri())) {
+                StatusResponseType logoutStatus = (StatusResponseType) samlDoc.getSamlObject();
+                if (!Objects.equals(logoutStatus.getStatus().getStatusCode().getValue().toString(), JBossSAMLURIConstants.STATUS_SUCCESS.get())) {
                     logger.warnf("saml logout reported as not successful for client: %s; status=%s", client.getClientId(),
                             logoutStatus.getStatus().getStatusCode().getValue());
                 }
