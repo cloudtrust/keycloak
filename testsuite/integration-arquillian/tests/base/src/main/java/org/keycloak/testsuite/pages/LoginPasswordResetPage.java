@@ -35,6 +35,9 @@ public class LoginPasswordResetPage extends LanguageComboboxAwarePage {
     @FindBy(css = "[type=\"submit\"]")
     private WebElement submitButton;
 
+    @FindBy(id = "kc-reset-password-form")
+    private WebElement formResetPassword;
+
     @FindBy(css = "[class='pf-v5-c-success'], [class='alert-success']")
     private WebElement emailSuccessMessage;
 
@@ -88,6 +91,10 @@ public class LoginPasswordResetPage extends LanguageComboboxAwarePage {
 
     public void backToLogin() {
         UIUtils.clickLink(backToLogin);
+    }
+
+    public String getFormUrl() {
+        return formResetPassword.getAttribute("action");
     }
 
     public String getInfoMessage() {
